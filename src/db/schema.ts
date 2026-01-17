@@ -3,6 +3,7 @@ import { pgTable, uuid, text, integer, boolean, timestamp } from "drizzle-orm/pg
 export const products = pgTable("products", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
+  description: text("description"),
   price: integer("price").notNull(), // Price in cents or smallest unit, or just raw integer
   vendor: text("vendor").notNull(),
   url: text("url").notNull(),
@@ -24,5 +25,13 @@ export const reviews = pgTable("reviews", {
   vendor: text("vendor").notNull(),
   rating: integer("rating").notNull(),
   comment: text("comment"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const scrapingConfigs = pgTable("scraping_configs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  url: text("url").notNull().unique(),
+  isActive: boolean("is_active").default(true),
+  lastScrapedAt: timestamp("last_scraped_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
