@@ -24,18 +24,9 @@ export function CostCalculator() {
   const broilerRealCostPerKg = monthlyBroilerCost / solidMeatKg;
 
   // Organic Comparison
-  // Assuming organic has similar wastage? Or user implies organic is "solid meat"? 
-  // User said: "Side by side I will also show the cost the customer have to pay to buy 1 kg organic chicken."
-  // Usually organic chicken also has wastage (bones, skin). 
-  // But let's assume we compare "Live Weight" price vs "Live Weight" price, OR "Solid Meat" cost.
-  // The user's example: "From this numbers I can easily calculate how much I have to pay for 1 kg of solid meat."
-  // Let's calculate the cost difference for the SAME AMOUNT of solid meat.
-  
-  const organicCostForSameAmount = (solidMeatKg / solidMeatRatio) * organicPrice; 
-  // If we assume organic has same wastage. 
-  // If organic is sold as processed meat, the calculation differs. 
-  // Let's assume both are live weight for now as is common in BD, or allow user to toggle.
-  // For simplicity, I will assume the user buys Live Weight for both.
+  // User Logic: Calculate cost based on the "Solid Meat" weight, not the raw broiler weight.
+  // This assumes the user switches to buying the *equivalent weight* of the meat they actually consume.
+  const organicCostForSameAmount = solidMeatKg * organicPrice;
   
   const extraCost = organicCostForSameAmount - monthlyBroilerCost;
 
@@ -84,6 +75,7 @@ export function CostCalculator() {
             <div>
               <p className="text-sm text-muted-foreground">Solid Meat You Get</p>
               <p className="text-xl font-bold">{solidMeatKg.toFixed(2)} kg</p>
+              <p className="text-xs text-muted-foreground">(70% of broiler weight)</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Real Cost of Broiler (Solid Meat)</p>
@@ -96,6 +88,9 @@ export function CostCalculator() {
              <div>
               <p className="text-sm text-muted-foreground">Est. Monthly Organic Cost</p>
               <p className="text-xl font-bold text-green-600">{organicCostForSameAmount.toFixed(0)} Tk</p>
+              <p className="text-xs text-muted-foreground">
+                (Calculated on {solidMeatKg.toFixed(2)} kg solid meat)
+              </p>
             </div>
           </div>
         </div>
