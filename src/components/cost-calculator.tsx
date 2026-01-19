@@ -1,15 +1,65 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+type Product = {
+  id: string;
+  name: string;
+  vendor: string;
+  price: number;
+  isOrganic: boolean;
+};
 
 export function CostCalculator() {
   const [broilerPrice, setBroilerPrice] = useState(170);
   const [broilerConsumption, setBroilerConsumption] = useState(6);
   const [organicPrice, setOrganicPrice] = useState(390);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [selectedProviderId, setSelectedProviderId] = useState<string>("custom");
+
+  useEffect(() => {
+    async function fetchProducts() {
+      try {
+        const res = await fetch("/api/products");
+        if (res.ok) {
+          const data = await res.json();
+          // Filter for organic products and maybe unique vendors? 
+          // For now, let's just list all organic options.
+          const organicProducts = data.filter((p: Product) => p.isOrganic);
+          setProducts(organicProducts);
+          
+          // Optional: Select the first one by default if available? 
+          // Let's keep default as custom/390 for now to match previous behavior, 
+          // or switch to the first provider if we want to be aggressive.
+          // Keeping 'custom' is safer.
+        }
+      } catch (error) {
+        console.error("Failed to fetch products", error);
+      }
+    }
+    fetchProducts();
+  }, []);
+
+  const handleProviderChange = (value: string) => {
+    setSelectedProviderId(value);
+    if (value !== "custom") {
+      const product = products.find((p) => p.id === value);
+      if (product) {
+        setOrganicPrice(product.price);
+      }
+    }
+  };
 
   // Constants
   const BROILER_WASTAGE_PERCENTAGE = 0.30; // 30% wastage
@@ -59,14 +109,42 @@ export function CostCalculator() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="organic-price">Organic Price (Tk/kg)</Label>
-            <Input
-              id="organic-price"
-              type="number"
-              value={organicPrice}
-              onChange={(e) => setOrganicPrice(Number(e.target.value))}
-            />
+            <Label htmlFor="organic-provider">Organic Provider</Label>
+            <Select value={selectedProviderId} onValueChange={handleProviderChange}>
+              <SelectTrigger id="organic-provider">
+                <SelectValue placeholder="Select a provider" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="custom">Custom Price</SelectItem>
+                {products.map((product) => (
+                  <SelectItem key={product.id} value={product.id}>
+                    {product.vendor} - {product.name} ({product.price} Tk/kg)
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
+          
+          {selectedProviderId === "custom" && (
+            <div className="space-y-2">
+              <Label htmlFor="organic-price">Organic Price (Tk/kg)</Label>
+              <Input
+                id="organic-price"
+                type="number"
+                value={organicPrice}
+                onChange={(e) => setOrganicPrice(Number(e.target.value))}
+              />
+            </div>
+          )}
+          
+          {selectedProviderId !== "custom" && (
+             <div className="space-y-2">
+              <Label>Selected Price</Label>
+              <div className="p-2 border rounded-md bg-muted text-muted-foreground">
+                {organicPrice} Tk/kg
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="bg-muted p-4 rounded-lg space-y-2">
