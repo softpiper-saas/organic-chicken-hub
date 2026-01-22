@@ -64,7 +64,8 @@ export default function Home() {
           <div>
             <h3 className="text-xl font-bold mb-4">Quick Links</h3>
             <ul className="space-y-2 text-gray-400">
-              <li><Link href="#" className="hover:text-white">Home</Link></li>
+              <li><Link href="/" className="hover:text-white">Home</Link></li>
+              <li><Link href="/blog" className="hover:text-white">Blog</Link></li>
               <li><Link href="#" className="hover:text-white">About Us</Link></li>
               <li><Link href="#" className="hover:text-white">Contact</Link></li>
             </ul>
