@@ -4,8 +4,25 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
 export default function Home() {
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'Organic Chicken Aggregator',
+    url: 'https://organic-chicken-aggregator.vercel.app',
+    description: 'Compare prices and find the best organic chicken in Bangladesh.',
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: 'https://organic-chicken-aggregator.vercel.app/search?q={search_term_string}',
+      'query-input': 'required name=search_term_string',
+    },
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Hero Section */}
       <section className="bg-gradient-to-b from-green-50 to-white py-20 px-4 text-center">
         <div className="max-w-4xl mx-auto space-y-6">

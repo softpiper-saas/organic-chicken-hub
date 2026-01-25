@@ -4,6 +4,17 @@ import { BlogCard } from '@/components/blog-card';
 export const metadata = {
   title: 'Organic Chicken Blog | Health & Tips',
   description: 'Read the latest insights on organic chicken, health benefits, and farming practices in Bangladesh.',
+  openGraph: {
+    title: 'Organic Chicken Blog | Health & Tips',
+    description: 'Read the latest insights on organic chicken, health benefits, and farming practices in Bangladesh.',
+    url: 'https://organic-chicken-aggregator.vercel.app/blog',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Organic Chicken Blog | Health & Tips',
+    description: 'Read the latest insights on organic chicken, health benefits, and farming practices in Bangladesh.',
+  },
 };
 
 export default function BlogPage() {
