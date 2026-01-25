@@ -24,43 +24,36 @@ export default function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       {/* Hero Section */}
-      <section className="bg-gradient-to-b from-green-50 to-white py-20 px-4 text-center">
-        <div className="max-w-4xl mx-auto space-y-6">
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-green-900">
-            Eat Healthy, Live Healthy
-          </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Discover the best organic chicken providers in Bangladesh. Compare prices, check reviews, and make the switch from antibiotic-laden broiler chicken today.
-          </p>
-          <div className="flex justify-center gap-4">
-            <Button className="bg-green-600 hover:bg-green-700 text-lg px-8 py-6">
-              Browse Organic Chicken
-            </Button>
-            <Button variant="outline" className="text-lg px-8 py-6">
-              Learn More
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* Cost Calculator Section */}
-      <section className="py-16 px-4 bg-white">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold mb-4">The True Cost of Broiler Chicken</h2>
-            <p className="text-muted-foreground">
-              Think broiler chicken is cheap? Think again. Calculate the real cost of solid meat and see how affordable organic can be.
+      <section className="bg-gradient-to-b from-green-50 to-white py-12 px-4">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div className="space-y-6 text-center lg:text-left">
+            <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-green-900">
+              Eat Healthy, Live Healthy
+            </h1>
+            <p className="text-xl text-muted-foreground">
+              Discover the best organic chicken providers in Bangladesh. Compare prices, check reviews, and make the switch from antibiotic-laden broiler chicken today.
             </p>
+            <div className="flex justify-center lg:justify-start gap-4">
+              <Button className="bg-green-600 hover:bg-green-700 text-lg px-8 py-6">
+                Browse Organic Chicken
+              </Button>
+              <Button variant="outline" className="text-lg px-8 py-6">
+                Learn More
+              </Button>
+            </div>
           </div>
-          <CostCalculator />
+          
+          <div className="w-full">
+            <CostCalculator />
+          </div>
         </div>
       </section>
 
       {/* Product List Section */}
-      <section className="py-16 px-4 bg-gray-50">
+      <section className="py-8 px-4 bg-gray-50">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold mb-4">Top Organic Chicken Providers</h2>
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold mb-2">Top Organic Chicken Providers</h2>
             <p className="text-muted-foreground">
               Curated list of verified organic chicken sellers in Bangladesh.
             </p>
