@@ -7,7 +7,8 @@ export function Navbar() {
       <div className="container flex h-16 items-center justify-between px-4">
         <div className="flex items-center gap-6 md:gap-10">
           <Link href="/" className="flex items-center space-x-2">
-            <span className="text-xl font-bold text-green-700">Organic Chicken</span>
+            <img src="/logo.png" alt="Organic Foods Hub BD" className="h-8 w-8 object-contain" />
+            <span className="text-xl font-bold text-green-700">Organic Foods Hub BD</span>
           </Link>
           <div className="hidden md:flex gap-6">
             <Link href="/" className="text-sm font-medium transition-colors hover:text-primary">

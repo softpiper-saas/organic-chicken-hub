@@ -7,12 +7,12 @@ export default function Home() {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
-    name: 'Organic Chicken Aggregator',
-    url: 'https://organic-chicken-aggregator.vercel.app',
-    description: 'Compare prices and find the best organic chicken in Bangladesh.',
+    name: 'Organic Foods Hub BD',
+    url: 'https://organicfoodshubbd.com',
+    description: 'Your trusted source for organic chicken, honey, ghee, nuts, and more in Bangladesh.',
     potentialAction: {
       '@type': 'SearchAction',
-      target: 'https://organic-chicken-aggregator.vercel.app/search?q={search_term_string}',
+      target: 'https://organicfoodshubbd.com/search?q={search_term_string}',
       'query-input': 'required name=search_term_string',
     },
   };
@@ -28,10 +28,10 @@ export default function Home() {
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="space-y-6 text-center lg:text-left">
             <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-green-900">
-              Eat Healthy, Live Healthy
+              Pure Nature, Delivered.
             </h1>
             <p className="text-xl text-muted-foreground">
-              Discover the best organic chicken providers in Bangladesh. Compare prices, check reviews, and make the switch from antibiotic-laden broiler chicken today.
+              Discover the best organic foods in Bangladesh. From safe chicken to pure honey and ghee, we bring nature's best to your doorstep.
             </p>
             <div className="flex justify-center lg:justify-start gap-4">
               <Button className="bg-green-600 hover:bg-green-700 text-lg px-8 py-6">
@@ -66,9 +66,9 @@ export default function Home() {
       <footer className="bg-gray-900 text-white py-12 px-4">
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
-            <h3 className="text-xl font-bold mb-4">Organic Chicken Aggregator</h3>
+            <h3 className="text-xl font-bold mb-4">Organic Foods Hub BD</h3>
             <p className="text-gray-400">
-              Helping you find safe, antibiotic-free chicken for your family.
+              Helping you find safe, organic food for your family.
             </p>
           </div>
           <div>
@@ -96,7 +96,7 @@ export default function Home() {
           </div>
         </div>
         <div className="max-w-6xl mx-auto mt-12 pt-8 border-t border-gray-800 text-center text-gray-500">
-          <p>&copy; 2024 Organic Chicken Aggregator. All rights reserved.</p>
+          <p>&copy; 2024 Organic Foods Hub BD. All rights reserved.</p>
         </div>
       </footer>
     </div>

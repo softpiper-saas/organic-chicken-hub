@@ -3,7 +3,7 @@ import { getBlogPosts } from '@/lib/blogs';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const posts = getBlogPosts();
-  const baseUrl = 'https://organic-chicken-aggregator.vercel.app';
+  const baseUrl = 'https://organicfoodshubbd.com';
 
   const blogUrls = posts.map((post) => ({
     url: `${baseUrl}/blog/${post.slug}`,

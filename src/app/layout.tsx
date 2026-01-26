@@ -14,16 +14,16 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://organic-chicken-aggregator.vercel.app'),
+  metadataBase: new URL('https://organicfoodshubbd.com'),
   title: {
-    default: "Organic Chicken Aggregator | Safe & Healthy Chicken in Bangladesh",
-    template: "%s | Organic Chicken Aggregator",
+    default: "Organic Foods Hub BD | Pure Nature, Delivered",
+    template: "%s | Organic Foods Hub BD",
   },
-  description: "Compare prices, read reviews, and find the best organic chicken providers in Bangladesh. Eat healthy, live healthy.",
-  keywords: ["organic chicken", "deshi chicken", "chicken price bd", "healthy food", "organic farming bangladesh"],
-  authors: [{ name: "Softpiper Team" }],
-  creator: "Softpiper",
-  publisher: "Softpiper",
+  description: "Your trusted source for organic chicken, honey, ghee, nuts, and more in Bangladesh. Eat healthy, live healthy with Organic Foods Hub BD.",
+  keywords: ["organic chicken", "organic honey", "ghee bd", "nuts bd", "healthy food", "organic farming bangladesh", "organic foods hub"],
+  authors: [{ name: "Organic Foods Hub Team" }],
+  creator: "Organic Foods Hub BD",
+  publisher: "Organic Foods Hub BD",
   robots: {
     index: true,
     follow: true,
@@ -38,16 +38,16 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://organic-chicken-aggregator.vercel.app',
-    title: "Organic Chicken Aggregator | Safe & Healthy Chicken in Bangladesh",
-    description: "Compare prices, read reviews, and find the best organic chicken providers in Bangladesh.",
-    siteName: "Organic Chicken Aggregator",
+    url: 'https://organicfoodshubbd.com',
+    title: "Organic Foods Hub BD | Pure Nature, Delivered",
+    description: "Your trusted source for organic chicken, honey, ghee, nuts, and more in Bangladesh.",
+    siteName: "Organic Foods Hub BD",
   },
   twitter: {
     card: 'summary_large_image',
-    title: "Organic Chicken Aggregator | Safe & Healthy Chicken in Bangladesh",
-    description: "Compare prices, read reviews, and find the best organic chicken providers in Bangladesh.",
-    creator: "@softpiper",
+    title: "Organic Foods Hub BD | Pure Nature, Delivered",
+    description: "Your trusted source for organic chicken, honey, ghee, nuts, and more in Bangladesh.",
+    creator: "@organicfoodshubbd",
   },
 };
 
