@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 
 type Config = {
   id: string;
@@ -57,7 +56,7 @@ export default function Dashboard() {
         const data = await res.json();
         alert(`Scrape completed! Processed ${data.data.length} items.`);
         fetchConfigs();
-    } catch (e) {
+    } catch {
         alert("Scrape failed");
     } finally {
         setScraping(false);

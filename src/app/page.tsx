@@ -31,14 +31,14 @@ export default function Home() {
               Pure Nature, Delivered.
             </h1>
             <p className="text-xl text-muted-foreground">
-              Discover the best organic foods in Bangladesh. From safe chicken to pure honey and ghee, we bring nature's best to your doorstep.
+              Discover the best organic foods in Bangladesh. From safe chicken to pure honey and ghee, we bring nature&apos;s best to your doorstep.
             </p>
             <div className="flex justify-center lg:justify-start gap-4">
-              <Button className="bg-green-600 hover:bg-green-700 text-lg px-8 py-6">
-                Browse Organic Chicken
+              <Button className="bg-green-600 hover:bg-green-700 text-lg px-8 py-6" asChild>
+                <Link href="/protein-budget-planner">Plan Protein Budget</Link>
               </Button>
-              <Button variant="outline" className="text-lg px-8 py-6">
-                Learn More
+              <Button variant="outline" className="text-lg px-8 py-6" asChild>
+                <Link href="#products">Browse Organic Chicken</Link>
               </Button>
             </div>
           </div>
@@ -50,7 +50,7 @@ export default function Home() {
       </section>
 
       {/* Product List Section */}
-      <section className="py-8 px-4 bg-gray-50">
+      <section id="products" className="py-8 px-4 bg-gray-50">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold mb-2">Top Organic Chicken Providers</h2>

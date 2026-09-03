@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -63,8 +62,7 @@ export function CostCalculator() {
 
   // Constants
   const BROILER_WASTAGE_PERCENTAGE = 0.30; // 30% wastage
-  const ORGANIC_WASTAGE_PERCENTAGE = 0.25; // Assuming slightly less wastage or similar? Let's keep it simple or make it configurable. 
-  // Actually user said: "After removing the wastage, I do get 70% off solid meat." -> 30% wastage.
+  // User assumption: after removing wastage, 70% of broiler weight is solid meat.
   
   const solidMeatRatio = 1 - BROILER_WASTAGE_PERCENTAGE;
 

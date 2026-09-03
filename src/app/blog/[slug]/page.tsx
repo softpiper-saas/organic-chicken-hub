@@ -1,6 +1,7 @@
 import { getBlogPost, getBlogPosts } from '@/lib/blogs';
 import ReactMarkdown from 'react-markdown';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, CalendarDays, Clock, Share2 } from 'lucide-react';
 import { notFound } from 'next/navigation';
@@ -109,10 +110,12 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         </h1>
 
         <div className="aspect-video w-full rounded-xl overflow-hidden relative shadow-lg">
-          <img 
+          <Image
             src={post.image} 
             alt={post.title}
-            className="object-cover w-full h-full"
+            fill
+            sizes="(min-width: 768px) 896px, 100vw"
+            className="object-cover"
           />
         </div>
 

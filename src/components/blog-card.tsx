@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CalendarDays, Clock, ArrowRight } from 'lucide-react';
@@ -13,10 +14,12 @@ export function BlogCard({ post }: BlogCardProps) {
     <Link href={`/blog/${post.slug}`} className="block h-full transition-transform hover:-translate-y-1">
       <Card className="h-full flex flex-col overflow-hidden border-border/50 bg-card/50 hover:bg-card/80 hover:shadow-lg transition-all duration-300">
         <div className="aspect-video w-full bg-muted/50 flex items-center justify-center relative overflow-hidden group">
-            <img 
+            <Image
               src={post.image} 
               alt={post.title}
-              className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
+              fill
+              sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+              className="object-cover group-hover:scale-105 transition-transform duration-500"
             />
         </div>
         <CardHeader className="space-y-2">

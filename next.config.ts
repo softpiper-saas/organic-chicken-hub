@@ -3,7 +3,14 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
   images: {
-    domains: ["images.unsplash.com", "organikchicken.com.bd","cdn.safefoods.com.bd", "www.khaasfood.com", "eonbazar.com"],
+    remotePatterns: [
+      { protocol: "https", hostname: "images.unsplash.com" },
+      { protocol: "https", hostname: "organikchicken.com.bd" },
+      { protocol: "https", hostname: "cdn.safefoods.com.bd" },
+      { protocol: "https", hostname: "www.khaasfood.com" },
+      { protocol: "https", hostname: "app.eonbazar.com" },
+      { protocol: "https", hostname: "placehold.co" },
+    ],
   },
 };
 

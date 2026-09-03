@@ -7,7 +7,7 @@ export async function GET() {
   try {
     const configs = await db.select().from(scrapingConfigs);
     return NextResponse.json(configs);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to fetch configs" }, { status: 500 });
   }
 }
@@ -19,7 +19,7 @@ export async function POST(req: Request) {
 
     const newConfig = await db.insert(scrapingConfigs).values({ url }).returning();
     return NextResponse.json(newConfig[0]);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to add URL" }, { status: 500 });
   }
 }
@@ -31,7 +31,7 @@ export async function DELETE(req: Request) {
 
         await db.delete(scrapingConfigs).where(eq(scrapingConfigs.id, id));
         return NextResponse.json({ success: true });
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: "Failed to delete URL" }, { status: 500 });
     }
 }
