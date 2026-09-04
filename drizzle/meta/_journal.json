@@ -8,6 +8,13 @@
       "when": 1769448166059,
       "tag": "0000_tired_apocalypse",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1788451200000,
+      "tag": "0001_product_categories_vendors",
+      "breakpoints": true
     }
   ]
 }

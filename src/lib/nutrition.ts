@@ -87,6 +87,10 @@ export function toDailyBudget(amount: number, period: BudgetPeriod) {
 }
 
 export function inferCategoryFromProduct(product: PlannerProduct): FoodCategory | null {
+  if (product.category && knownCategory(product.category)) {
+    return product.category;
+  }
+
   const searchable = `${product.name} ${product.vendor}`.toLowerCase();
 
   for (const [category, keywords] of Object.entries(categoryKeywords) as [FoodCategory, string[]][]) {
@@ -96,6 +100,10 @@ export function inferCategoryFromProduct(product: PlannerProduct): FoodCategory 
   }
 
   return product.isOrganic ? "chicken" : null;
+}
+
+function knownCategory(value: string): value is FoodCategory {
+  return Object.keys(categoryKeywords).includes(value);
 }
 
 export function profileForCategory(category: FoodCategory, productName?: string) {
@@ -161,14 +169,29 @@ function candidateFromProfile(profile: NutritionProfile): ProteinCandidate {
 }
 
 function candidateFromProduct(product: PlannerProduct): ProteinCandidate | null {
+  if (product.inStock === false) return null;
+
   const category = inferCategoryFromProduct(product);
   if (!category) return null;
 
-  const profile = profileForCategory(category, product.name);
+  const profile =
+    nutritionProfiles.find((item) => item.foodType === product.foodType) ||
+    profileForCategory(category, product.name);
   if (!profile) return null;
 
   const base = candidateFromProfile(profile);
-  const costPerBaseUnit = profile.priceBasis === "kg" ? product.price / 1000 : product.price;
+  const costPerBaseUnit =
+    profile.priceBasis === "kg"
+      ? (product.normalizedPricePerKg ?? product.price) / 1000
+      : profile.priceBasis === "unit"
+        ? product.normalizedPricePerUnit ?? product.price
+        : product.price;
+  const priceForLabel =
+    profile.priceBasis === "kg"
+      ? product.normalizedPricePerKg ?? product.price
+      : profile.priceBasis === "unit"
+        ? product.normalizedPricePerUnit ?? product.price
+        : product.price;
 
   return {
     ...base,
@@ -179,7 +202,7 @@ function candidateFromProduct(product: PlannerProduct): ProteinCandidate | null 
     source: "scraped_product",
     isOrganic: Boolean(product.isOrganic),
     costPerBaseUnit,
-    priceLabel: priceLabelForProfile(profile, product.price),
+    priceLabel: priceLabelForProfile(profile, priceForLabel),
   };
 }
 

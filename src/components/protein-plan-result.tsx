@@ -10,10 +10,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { categoryLabel, formatTk } from "@/lib/nutrition";
-import { ProteinPlanResult as ProteinPlanResultType } from "@/types/protein-planner";
+import {
+  PlannerMode,
+  ProteinPlanResult as ProteinPlanResultType,
+} from "@/types/protein-planner";
 
 type ProteinPlanResultProps = {
   result: ProteinPlanResultType;
+  activeMode: PlannerMode;
+  onModeChange: (mode: PlannerMode) => void;
   onRemoveFood: (foodType: string) => void;
   onResetExclusions: () => void;
   excludedCount: number;
@@ -21,6 +26,8 @@ type ProteinPlanResultProps = {
 
 export function ProteinPlanResult({
   result,
+  activeMode,
+  onModeChange,
   onRemoveFood,
   onResetExclusions,
   excludedCount,
@@ -30,11 +37,49 @@ export function ProteinPlanResult({
 
   return (
     <div className="space-y-4 lg:sticky lg:top-24">
+      <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-1">
+        {result.planOptions.map((option) => {
+          const active = option.mode === activeMode;
+          const optionTargetMet = option.proteinGap <= 5;
+
+          return (
+            <button
+              key={option.mode}
+              type="button"
+              onClick={() => onModeChange(option.mode)}
+              className={
+                active
+                  ? "rounded-lg border border-green-700 bg-green-50 p-3 text-left shadow-sm"
+                  : "rounded-lg border bg-white p-3 text-left transition-colors hover:bg-muted"
+              }
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className={active ? "font-semibold text-green-800" : "font-semibold"}>
+                    {option.label}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {option.description}
+                  </p>
+                </div>
+                <Badge variant={optionTargetMet ? "default" : "secondary"}>
+                  {Math.round(option.totalProteinGrams)}g
+                </Badge>
+              </div>
+              <div className="mt-3 flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Daily cost</span>
+                <span className="font-semibold">{formatTk(option.totalCostPerDay)}</span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
       <Card className="overflow-hidden rounded-lg">
         <CardHeader className="bg-zinc-950 text-white">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <CardTitle className="text-2xl">Your Protein Plan</CardTitle>
+              <CardTitle className="text-2xl">Your {result.planOptions.find((option) => option.mode === activeMode)?.label} Plan</CardTitle>
               <p className="mt-1 text-sm text-zinc-300">
                 Estimated daily targets and food allocation.
               </p>

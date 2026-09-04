@@ -57,6 +57,7 @@ const defaultInput: ProteinPlannerInput = {
   excludedCategories: [],
   excludedFoodTypes: [],
   organicOnly: false,
+  plannerMode: "balanced",
   mealCount: 3,
 };
 
@@ -221,6 +222,30 @@ export function ProteinBudgetPlanner() {
             </section>
 
             <section className="space-y-4">
+              <SectionTitle title="Planner mode" />
+              <div className="grid gap-2 sm:grid-cols-3">
+                <ModeButton
+                  active={input.plannerMode === "balanced"}
+                  title="Balanced"
+                  description="Mix cost and food variety"
+                  onClick={() => updateInput("plannerMode", "balanced")}
+                />
+                <ModeButton
+                  active={input.plannerMode === "cheapest"}
+                  title="Cheapest"
+                  description="Lowest protein cost"
+                  onClick={() => updateInput("plannerMode", "cheapest")}
+                />
+                <ModeButton
+                  active={input.plannerMode === "organic"}
+                  title="Organic"
+                  description="Prefer premium sources"
+                  onClick={() => updateInput("plannerMode", "organic")}
+                />
+              </div>
+            </section>
+
+            <section className="space-y-4">
               <SectionTitle title="Food preferences" />
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {foodCategories.map((category) => {
@@ -269,11 +294,42 @@ export function ProteinBudgetPlanner() {
 
       <ProteinPlanResult
         result={result}
+        activeMode={input.plannerMode}
+        onModeChange={(mode) => updateInput("plannerMode", mode)}
         onRemoveFood={removeFoodType}
         onResetExclusions={() => updateInput("excludedFoodTypes", [])}
         excludedCount={input.excludedFoodTypes.length}
       />
     </div>
+  );
+}
+
+function ModeButton({
+  active,
+  title,
+  description,
+  onClick,
+}: {
+  active: boolean;
+  title: string;
+  description: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={
+        active
+          ? "rounded-md border border-green-700 bg-green-50 p-3 text-left shadow-sm"
+          : "rounded-md border bg-background p-3 text-left transition-colors hover:bg-muted"
+      }
+    >
+      <span className={active ? "block font-semibold text-green-800" : "block font-semibold"}>
+        {title}
+      </span>
+      <span className="mt-1 block text-xs text-muted-foreground">{description}</span>
+    </button>
   );
 }
 

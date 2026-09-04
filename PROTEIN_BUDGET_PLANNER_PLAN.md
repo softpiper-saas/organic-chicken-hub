@@ -16,16 +16,41 @@ Completed in the first execution pass:
 - Planner form UI.
 - Result panel with removable food items and recalculation.
 - Homepage and navbar entry points.
+- Phase 3 recommendation engine improvements:
+  - Cheapest, balanced, and organic planner modes.
+  - Multiple generated plan options.
+  - Stronger category diversity behavior for balanced plans.
+  - Mode-specific food scoring.
+  - Mode-specific protein share caps.
+  - Better budget and protein shortfall warnings.
+  - UI controls for switching between plan modes.
+- Phase 2 data model and integration work:
+  - Added `product_categories` and `vendors` tables.
+  - Added category, food type, package, normalized price, stock, vendor, and nutrition mapping fields to products.
+  - Added category, vendor name, and source type to scraping configs.
+  - Added collection-page extraction support in the scraper.
+  - Added product category fallback data and `/api/categories`.
+  - Added category filtering to `/api/products`.
+  - Added `/api/products/[id]/price-history`.
+  - Backfilled existing products with category/vendor/food type/normalized price metadata.
+  - Backfilled one baseline price history row per existing product.
+  - Seeded Fish Vally, RiverFish, and Ghorer Bazar as collection-page scraping sources.
+  - Added admin product nutrition mapping API.
+  - Added dashboard controls for category, food type, normalized prices, and nutrition verification.
 
 Verified:
 - `npm run lint` passes with no warnings.
 - Dev server smoke test returned `200` for `/` and `/protein-budget-planner`.
+- Phase 3 smoke test returned `200` for `/protein-budget-planner`.
 - Unauthenticated `/admin/dashboard` returned `401`.
+- `npx drizzle-kit push` applied the expanded schema to the configured local database.
+- `/api/categories` returns DB-backed product categories.
+- `/api/products?category=chicken` returns backfilled category/vendor metadata.
+- `/api/products/[id]/price-history` returns baseline history for an existing product.
 
 Not completed yet:
-- Phase 2 database expansion for multi-food product metadata.
-- Collection-page scraping for fish and nuts vendors.
-- Admin nutrition mapping workflow.
+- Live fish/nuts scraping extraction needs tuning against each vendor page after the first scrape run.
+- Live scraper extraction quality still needs to be validated against the real vendor pages before relying on it in production.
 - Saved plans, sharing, and analytics.
 - Full production `next build` verification was attempted, but the command session became stale after the TypeScript phase while no live build process remained.
 
@@ -819,40 +844,40 @@ Acceptance criteria:
 Goal: Expand beyond chicken into fish, nuts, eggs, dal, and dairy.
 
 Tasks:
-- [ ] Add product fields for category, food type, package size, package unit, normalized price.
-- [ ] Add migration.
-- [ ] Update scraper extraction schema.
-- [ ] Support collection-page scraping.
-- [ ] Add scraping configs for Fish Vally.
-- [ ] Add scraping configs for RiverFish.
-- [ ] Add scraping configs for Ghorer Bazar nuts/seeds.
-- [ ] Add admin product nutrition mapping screen.
-- [ ] Add manual verified toggle.
+- [x] Add product fields for category, food type, package size, package unit, normalized price.
+- [x] Add migration.
+- [x] Update scraper extraction schema.
+- [x] Support collection-page scraping.
+- [x] Add scraping configs for Fish Vally.
+- [x] Add scraping configs for RiverFish.
+- [x] Add scraping configs for Ghorer Bazar nuts/seeds.
+- [x] Add admin product nutrition mapping screen.
+- [x] Add manual verified toggle.
 
 Acceptance criteria:
 - [ ] Products from fish vendors can be scraped.
 - [ ] Products from nuts/seeds vendor can be scraped.
-- [ ] Prices are normalized.
-- [ ] Products are mapped to nutrition profiles.
-- [ ] Planner can recommend fish and nuts based on live price data.
+- [x] Prices are normalized.
+- [x] Products are mapped to nutrition profiles.
+- [x] Planner can recommend fish and nuts based on live price data when those products exist; it uses estimated fallback data until live products are scraped.
 
 ### Phase 3 - Better Recommendation Engine
 
 Goal: Make plans more realistic and useful.
 
 Tasks:
-- [ ] Add category diversity rules.
-- [ ] Add max daily quantity per food.
-- [ ] Add preferred food weighting.
-- [ ] Add budget shortfall warnings.
-- [ ] Add "cheapest plan" mode.
-- [ ] Add "balanced plan" mode.
-- [ ] Add "organic/premium plan" mode.
+- [x] Add category diversity rules.
+- [x] Add max daily quantity per food.
+- [x] Add preferred food weighting.
+- [x] Add budget shortfall warnings.
+- [x] Add "cheapest plan" mode.
+- [x] Add "balanced plan" mode.
+- [x] Add "organic/premium plan" mode.
 
 Acceptance criteria:
-- [ ] Planner does not recommend unrealistic amounts of one food.
-- [ ] Planner explains when budget is too low.
-- [ ] Planner can show multiple plan options.
+- [x] Planner does not recommend unrealistic amounts of one food.
+- [x] Planner explains when budget is too low.
+- [x] Planner can show multiple plan options.
 
 ### Phase 4 - Retention Features
 

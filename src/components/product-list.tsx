@@ -28,19 +28,33 @@ type Product = {
   description: string | null;
   vendor: string;
   price: number;
+  category: string | null;
+  foodType: string | null;
+  normalizedPricePerKg: number | null;
+  normalizedPricePerUnit: number | null;
   imageUrl: string | null;
   url: string;
   isOrganic: boolean;
+  inStock: boolean | null;
+};
+
+type ProductCategory = {
+  id: string;
+  name: string;
+  slug: string;
 };
 
 type SortOption = "price-asc" | "price-desc" | "name";
 type ViewMode = "grid" | "table";
+type CategoryFilter = "all" | string;
 
 export function ProductList() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<SortOption>("price-asc");
   const [viewMode, setViewMode] = useState<ViewMode>("table");
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
 
   useEffect(() => {
     async function fetchProducts() {
@@ -49,6 +63,10 @@ export function ProductList() {
         if (res.ok) {
           const data = await res.json();
           setProducts(data);
+        }
+        const categoryRes = await fetch("/api/categories");
+        if (categoryRes.ok) {
+          setCategories(await categoryRes.json());
         }
       } catch (error) {
         console.error("Failed to fetch products", error);
@@ -60,9 +78,22 @@ export function ProductList() {
     fetchProducts();
   }, []);
 
-  const sortedProducts = [...products].sort((a, b) => {
-    if (sortBy === "price-asc") return a.price - b.price;
-    if (sortBy === "price-desc") return b.price - a.price;
+  const productCategories = Array.from(
+    new Set(products.map((product) => product.category).filter(Boolean))
+  ) as string[];
+  const categoryOptions = categories.length > 0
+    ? categories.map((category) => category.slug)
+    : productCategories;
+
+  const filteredProducts = products.filter((product) =>
+    categoryFilter === "all" ? true : product.category === categoryFilter
+  );
+
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    const aPrice = normalizedComparablePrice(a);
+    const bPrice = normalizedComparablePrice(b);
+    if (sortBy === "price-asc") return aPrice - bPrice;
+    if (sortBy === "price-desc") return bPrice - aPrice;
     if (sortBy === "name") return a.name.localeCompare(b.name);
     return 0;
   });
@@ -94,7 +125,25 @@ export function ProductList() {
     <div className="space-y-6">
       {/* Controls */}
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-muted/30 p-4 rounded-lg">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium">Category:</span>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All categories</SelectItem>
+                {categoryOptions.map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {categoryLabel(category)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-2">
           <span className="text-sm font-medium">Sort by:</span>
           <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
             <SelectTrigger className="w-[180px]">
@@ -106,6 +155,7 @@ export function ProductList() {
               <SelectItem value="name">Name</SelectItem>
             </SelectContent>
           </Select>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -142,6 +192,9 @@ export function ProductList() {
                     {product.isOrganic && (
                     <Badge className="bg-green-600 hover:bg-green-700">Organic</Badge>
                     )}
+                    {product.category && (
+                        <Badge variant="secondary">{categoryLabel(product.category)}</Badge>
+                    )}
                     {product.id === bestValueProductId && (
                         <Badge className="bg-yellow-500 hover:bg-yellow-600 text-black">Best Value</Badge>
                     )}
@@ -156,7 +209,7 @@ export function ProductList() {
                 </div>
               </CardHeader>
               <CardContent className="flex-grow">
-                <p className="text-2xl font-bold text-primary mb-2">{product.price} Tk <span className="text-sm font-normal text-muted-foreground">/kg</span></p>
+                <p className="text-2xl font-bold text-primary mb-2">{priceLabel(product)}</p>
                 {product.description && (
                   <p className="text-sm text-muted-foreground line-clamp-3">{product.description}</p>
                 )}
@@ -199,12 +252,13 @@ export function ProductList() {
                   </TableCell>
                   <TableCell>
                     <div className="font-medium">{product.name}</div>
+                    {product.category && <Badge variant="secondary" className="mr-2 mt-1">{categoryLabel(product.category)}</Badge>}
                     {product.isOrganic && <Badge variant="outline" className="text-green-600 border-green-600 mt-1">Organic</Badge>}
                     {product.id === bestValueProductId && <Badge variant="secondary" className="ml-2 bg-yellow-100 text-yellow-800 hover:bg-yellow-200">Best Value</Badge>}
                     {product.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{product.description}</p>}
                   </TableCell>
                   <TableCell>{product.vendor}</TableCell>
-                  <TableCell className="font-bold text-lg">{product.price} Tk</TableCell>
+                  <TableCell className="font-bold text-lg">{priceLabel(product)}</TableCell>
                   <TableCell className="text-right">
                     <Button size="sm" asChild>
                       <a href={product.url} target="_blank" rel="noopener noreferrer">Buy</a>
@@ -218,4 +272,18 @@ export function ProductList() {
       )}
     </div>
   );
+}
+
+function normalizedComparablePrice(product: Product) {
+  return product.normalizedPricePerKg ?? product.normalizedPricePerUnit ?? product.price;
+}
+
+function priceLabel(product: Product) {
+  if (product.normalizedPricePerKg) return `${product.normalizedPricePerKg} Tk/kg`;
+  if (product.normalizedPricePerUnit) return `${product.normalizedPricePerUnit} Tk/pc`;
+  return `${product.price} Tk`;
+}
+
+function categoryLabel(category: string) {
+  return category.charAt(0).toUpperCase() + category.slice(1);
 }

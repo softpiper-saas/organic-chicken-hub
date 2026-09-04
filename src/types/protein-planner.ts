@@ -10,6 +10,8 @@ export type ProteinGoal =
 
 export type BudgetPeriod = "daily" | "weekly" | "monthly";
 
+export type PlannerMode = "cheapest" | "balanced" | "organic";
+
 export type FoodCategory =
   | "chicken"
   | "egg"
@@ -30,7 +32,15 @@ export type PlannerProduct = {
   vendor: string;
   price: number;
   url: string;
+  category?: string | null;
+  foodType?: string | null;
+  packageSize?: number | null;
+  packageUnit?: string | null;
+  normalizedPricePerKg?: number | null;
+  normalizedPricePerUnit?: number | null;
   isOrganic: boolean | null;
+  inStock?: boolean | null;
+  nutritionVerified?: boolean | null;
   imageUrl?: string | null;
 };
 
@@ -68,6 +78,7 @@ export type ProteinPlannerInput = {
   excludedCategories: FoodCategory[];
   excludedFoodTypes: string[];
   organicOnly: boolean;
+  plannerMode: PlannerMode;
   mealCount: 2 | 3 | 4;
 };
 
@@ -107,11 +118,27 @@ export type ProteinPlanItem = {
   priceLabel: string;
 };
 
+export type ProteinPlanOption = {
+  mode: PlannerMode;
+  label: string;
+  description: string;
+  selectedItems: ProteinPlanItem[];
+  totalProteinGrams: number;
+  totalCalories: number;
+  totalCostPerDay: number;
+  totalCostPerMonth: number;
+  remainingBudget: number;
+  proteinGap: number;
+  warnings: string[];
+};
+
 export type ProteinPlanResult = {
   targetProteinGrams: number;
   targetCalories: number;
   bmr: number;
   budgetPerDay: number;
+  activeMode: PlannerMode;
+  planOptions: ProteinPlanOption[];
   selectedItems: ProteinPlanItem[];
   totalProteinGrams: number;
   totalCalories: number;

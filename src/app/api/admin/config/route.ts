@@ -14,10 +14,15 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const { url } = await req.json();
+    const { url, vendorName, category, sourceType } = await req.json();
     if (!url) return NextResponse.json({ error: "URL is required" }, { status: 400 });
 
-    const newConfig = await db.insert(scrapingConfigs).values({ url }).returning();
+    const newConfig = await db.insert(scrapingConfigs).values({
+      url,
+      vendorName,
+      category: category || "chicken",
+      sourceType: sourceType || "product_page",
+    }).returning();
     return NextResponse.json(newConfig[0]);
   } catch {
     return NextResponse.json({ error: "Failed to add URL" }, { status: 500 });
