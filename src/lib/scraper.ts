@@ -39,8 +39,14 @@ type ProductScrapeResponse = {
   error?: string;
 };
 
+type FirecrawlScrapeClient = {
+  scrapeUrl: (url: string, params: unknown) => Promise<ProductScrapeResponse>;
+};
+
 // Initialize Firecrawl
-const firecrawl = new FirecrawlApp({ apiKey: process.env.FIRECRAWL_API_KEY });
+const firecrawl = new FirecrawlApp({
+  apiKey: process.env.FIRECRAWL_API_KEY,
+}) as unknown as FirecrawlScrapeClient;
 
 const knownCategories: FoodCategory[] = [
   "chicken",
@@ -273,7 +279,7 @@ export async function scrapeProducts() {
             : `Extract the product name, description, price as an integer in Tk, vendor name, product URL, image URL, category, foodType, packageSize, packageUnit, stock status, and whether it appears organic from this product page. Default category is ${config.category || "chicken"} and default vendor is ${config.vendorName || "the source website"}.`,
           schema: isCollectionPage ? productCollectionExtractSchema : productExtractSchema,
         }
-      }) as ProductScrapeResponse;
+      });
 
       if (!scrapeResult.success) {
         console.error(`Failed to scrape ${config.url}:`, scrapeResult.error);

@@ -54,12 +54,23 @@ function isAuthorized(authHeader: string | null) {
   );
 }
 
+function hasAdminCredentials() {
+  return Boolean(
+    process.env.ADMIN_SECRET ||
+    (process.env.ADMIN_USERNAME && process.env.ADMIN_PASSWORD)
+  );
+}
+
 export function proxy(request: NextRequest) {
   if (!isProtectedPath(request.nextUrl.pathname)) {
     return NextResponse.next();
   }
 
-  if (!process.env.ADMIN_SECRET && (!process.env.ADMIN_USERNAME || !process.env.ADMIN_PASSWORD)) {
+  if (!hasAdminCredentials() && process.env.NODE_ENV === "development") {
+    return NextResponse.next();
+  }
+
+  if (!hasAdminCredentials()) {
     return unauthorized("Admin credentials are not configured");
   }
 
