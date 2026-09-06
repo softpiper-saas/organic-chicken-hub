@@ -57,6 +57,7 @@ export default function SourcesPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [scraping, setScraping] = useState(false);
+  const [scrapingSourceId, setScrapingSourceId] = useState("");
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [sourceTypeFilter, setSourceTypeFilter] = useState("all");
@@ -167,6 +168,23 @@ export default function SourcesPage() {
     }
   };
 
+  const triggerSourceScrape = async (config: Config) => {
+    setScrapingSourceId(config.id);
+    try {
+      const res = await fetch("/api/scrape", {
+        method: "POST",
+        body: JSON.stringify({ sourceId: config.id }),
+      });
+      const data = await res.json();
+      alert(`Scrape completed. Processed ${data.data.length} items.`);
+      fetchConfigs();
+    } catch {
+      alert("Scrape failed");
+    } finally {
+      setScrapingSourceId("");
+    }
+  };
+
   const resetFilters = () => {
     setSearch("");
     setCategoryFilter("all");
@@ -186,7 +204,7 @@ export default function SourcesPage() {
         <div className="flex flex-wrap gap-2">
           <Button onClick={triggerScrape} disabled={scraping} variant="outline">
             <RefreshCw className="h-4 w-4" />
-            {scraping ? "Scraping..." : "Run Scrape"}
+            {scraping ? "Scraping..." : "Run All"}
           </Button>
           <Button onClick={() => setCreateOpen(true)} disabled={categoryOptions.length === 0}>
             <Plus className="h-4 w-4" />
@@ -279,6 +297,15 @@ export default function SourcesPage() {
                   <TableCell>{config.lastScrapedAt ? new Date(config.lastScrapedAt).toLocaleString() : "Never"}</TableCell>
                   <TableCell>
                     <div className="flex justify-end gap-2">
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        aria-label="Scrape source"
+                        onClick={() => triggerSourceScrape(config)}
+                        disabled={Boolean(scrapingSourceId) || scraping}
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                      </Button>
                       <Button size="icon" variant="outline" aria-label="Edit source" onClick={() => openEditModal(config)}>
                         <Edit className="h-4 w-4" />
                       </Button>

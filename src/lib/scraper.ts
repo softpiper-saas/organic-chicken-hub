@@ -43,6 +43,14 @@ type FirecrawlScrapeClient = {
   scrapeUrl: (url: string, params: unknown) => Promise<ProductScrapeResponse>;
 };
 
+type ScrapeTarget = {
+  id?: string;
+  url: string;
+  vendorName: string | null;
+  category: string | null;
+  sourceType: string | null;
+};
+
 // Initialize Firecrawl
 const firecrawl = new FirecrawlApp({
   apiKey: process.env.FIRECRAWL_API_KEY,
@@ -181,7 +189,7 @@ function extractedProductsFromResult(extract: ProductScrapeResponse["extract"]) 
   return [extract];
 }
 
-async function upsertProduct(data: ExtractedProduct, config: typeof scrapingConfigs.$inferSelect) {
+async function upsertProduct(data: ExtractedProduct, config: ScrapeTarget) {
   const productUrl = data.url || config.url;
   const category = normalizeCategorySlug(data.category || config.category);
   const categoryRecord = await findOrCreateCategory(category);
@@ -254,17 +262,7 @@ async function upsertProduct(data: ExtractedProduct, config: typeof scrapingConf
   return { ...data, url: productUrl, category, foodType: data.foodType || profile?.foodType, status: "inserted" };
 }
 
-export async function scrapeProducts() {
-  console.log("Starting scrape job...");
-  
-  // Fetch active URLs from config
-  const configs = await db.select().from(scrapingConfigs).where(eq(scrapingConfigs.isActive, true));
-  
-  if (configs.length === 0) {
-    console.log("No active scraping configs found.");
-    return [];
-  }
-
+async function scrapeTargets(configs: ScrapeTarget[], updateConfigTimestamps: boolean) {
   const results = [];
 
   for (const config of configs) {
@@ -298,9 +296,11 @@ export async function scrapeProducts() {
       }
       
       // Update last scraped time for config
-      await db.update(scrapingConfigs)
-        .set({ lastScrapedAt: new Date() })
-        .where(eq(scrapingConfigs.id, config.id));
+      if (updateConfigTimestamps && config.id) {
+        await db.update(scrapingConfigs)
+          .set({ lastScrapedAt: new Date() })
+          .where(eq(scrapingConfigs.id, config.id));
+      }
 
     } catch (error) {
       console.error(`Error scraping ${config.url}:`, error);
@@ -308,4 +308,53 @@ export async function scrapeProducts() {
   }
 
   return results;
+}
+
+export async function scrapeProducts(options: { sourceId?: string; productId?: string } = {}) {
+  console.log("Starting scrape job...");
+
+  if (options.sourceId) {
+    const configs = await db
+      .select()
+      .from(scrapingConfigs)
+      .where(eq(scrapingConfigs.id, options.sourceId));
+
+    if (configs.length === 0) {
+      console.log("No scraping config found for requested source.");
+      return [];
+    }
+
+    return scrapeTargets(configs, true);
+  }
+
+  if (options.productId) {
+    const productRows = await db
+      .select()
+      .from(products)
+      .where(eq(products.id, options.productId));
+
+    if (productRows.length === 0) {
+      console.log("No product found for requested scrape.");
+      return [];
+    }
+
+    const product = productRows[0];
+    return scrapeTargets([
+      {
+        url: product.url,
+        vendorName: product.vendor,
+        category: product.category,
+        sourceType: "product_page",
+      },
+    ], false);
+  }
+
+  const configs = await db.select().from(scrapingConfigs).where(eq(scrapingConfigs.isActive, true));
+
+  if (configs.length === 0) {
+    console.log("No active scraping configs found.");
+    return [];
+  }
+
+  return scrapeTargets(configs, true);
 }

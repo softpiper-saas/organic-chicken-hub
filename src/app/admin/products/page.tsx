@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Edit, History, Plus, Search, Trash2 } from "lucide-react";
+import { Edit, History, Plus, RefreshCw, Search, Trash2 } from "lucide-react";
 import {
   draftFromProduct,
   emptyProductDraft,
@@ -60,6 +60,7 @@ export default function ProductsPage() {
   const [deleteProduct, setDeleteProduct] = useState<Product | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [scrapingProductId, setScrapingProductId] = useState("");
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [vendorFilter, setVendorFilter] = useState("all");
@@ -162,6 +163,23 @@ export default function ProductsPage() {
     setDeleteProduct(null);
     setSaving(false);
     fetchProducts();
+  };
+
+  const scrapeProduct = async (product: Product) => {
+    setScrapingProductId(product.id);
+    try {
+      const res = await fetch("/api/scrape", {
+        method: "POST",
+        body: JSON.stringify({ productId: product.id }),
+      });
+      const data = await res.json();
+      alert(`Scrape completed. Processed ${data.data.length} items.`);
+      fetchProducts();
+    } catch {
+      alert("Scrape failed");
+    } finally {
+      setScrapingProductId("");
+    }
   };
 
   const resetFilters = () => {
@@ -306,6 +324,15 @@ export default function ProductsPage() {
                         <Link href={`/admin/price-history?productId=${product.id}`} aria-label="View price history">
                           <History className="h-4 w-4" />
                         </Link>
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        aria-label="Scrape product"
+                        onClick={() => scrapeProduct(product)}
+                        disabled={scrapingProductId === product.id}
+                      >
+                        <RefreshCw className="h-4 w-4" />
                       </Button>
                       <Button size="icon" variant="outline" aria-label="Edit product" onClick={() => openEditModal(product)}>
                         <Edit className="h-4 w-4" />
