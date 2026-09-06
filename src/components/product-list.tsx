@@ -30,6 +30,8 @@ type Product = {
   price: number;
   category: string | null;
   foodType: string | null;
+  packageSize: number | null;
+  packageUnit: string | null;
   normalizedPricePerKg: number | null;
   normalizedPricePerUnit: number | null;
   imageUrl: string | null;
@@ -100,7 +102,7 @@ export function ProductList() {
 
   const bestValueProductId = products
     .filter((p) => p.isOrganic)
-    .sort((a, b) => a.price - b.price)[0]?.id;
+    .sort((a, b) => normalizedComparablePrice(a) - normalizedComparablePrice(b))[0]?.id;
 
   if (loading) {
     return <div className="text-center py-10">Loading organic goodness...</div>;
@@ -209,7 +211,8 @@ export function ProductList() {
                 </div>
               </CardHeader>
               <CardContent className="flex-grow">
-                <p className="text-2xl font-bold text-primary mb-2">{priceLabel(product)}</p>
+                <p className="text-2xl font-bold text-primary">{packagePriceLabel(product)}</p>
+                <p className="mb-2 text-sm text-muted-foreground">{comparisonPriceLabel(product)}</p>
                 {product.description && (
                   <p className="text-sm text-muted-foreground line-clamp-3">{product.description}</p>
                 )}
@@ -258,7 +261,10 @@ export function ProductList() {
                     {product.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{product.description}</p>}
                   </TableCell>
                   <TableCell>{product.vendor}</TableCell>
-                  <TableCell className="font-bold text-lg">{priceLabel(product)}</TableCell>
+                  <TableCell>
+                    <p className="font-bold text-lg">{packagePriceLabel(product)}</p>
+                    <p className="text-xs text-muted-foreground">{comparisonPriceLabel(product)}</p>
+                  </TableCell>
                   <TableCell className="text-right">
                     <Button size="sm" asChild>
                       <a href={product.url} target="_blank" rel="noopener noreferrer">Buy</a>
@@ -278,10 +284,25 @@ function normalizedComparablePrice(product: Product) {
   return product.normalizedPricePerKg ?? product.normalizedPricePerUnit ?? product.price;
 }
 
-function priceLabel(product: Product) {
+function packageUnitLabel(unit: string) {
+  if (unit === "pc") return "pc";
+  return unit;
+}
+
+function packageLabel(product: Product) {
+  if (!product.packageSize || !product.packageUnit) return null;
+  return `${product.packageSize} ${packageUnitLabel(product.packageUnit)}`;
+}
+
+function packagePriceLabel(product: Product) {
+  const productPackage = packageLabel(product);
+  return productPackage ? `${product.price} Tk / ${productPackage}` : `${product.price} Tk`;
+}
+
+function comparisonPriceLabel(product: Product) {
   if (product.normalizedPricePerKg) return `${product.normalizedPricePerKg} Tk/kg`;
   if (product.normalizedPricePerUnit) return `${product.normalizedPricePerUnit} Tk/pc`;
-  return `${product.price} Tk`;
+  return "Package price";
 }
 
 function categoryLabel(category: string) {

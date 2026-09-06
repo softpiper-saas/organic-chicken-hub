@@ -10,6 +10,7 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "www.khaasfood.com" },
       { protocol: "https", hostname: "app.eonbazar.com" },
       { protocol: "https", hostname: "placehold.co" },
+      { protocol: "https", hostname: "backoffice.ghorerbazar.com" },
     ],
   },
 };

@@ -1,0 +1,1 @@
+ALTER TABLE "products" ALTER COLUMN "is_organic" SET DEFAULT false;

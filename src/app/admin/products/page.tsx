@@ -290,7 +290,7 @@ export default function ProductsPage() {
                 <TableHead>Category</TableHead>
                 <TableHead>Vendor</TableHead>
                 <TableHead className="text-right">Price</TableHead>
-                <TableHead className="text-right">Tk/kg</TableHead>
+                <TableHead className="text-right">Comparison</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -306,9 +306,11 @@ export default function ProductsPage() {
                   </TableCell>
                   <TableCell>{product.category || "uncategorized"}</TableCell>
                   <TableCell>{product.vendor}</TableCell>
-                  <TableCell className="text-right">{product.price} Tk</TableCell>
                   <TableCell className="text-right">
-                    {product.normalizedPricePerKg ? `${product.normalizedPricePerKg} Tk` : "-"}
+                    <p className="font-medium">{packagePriceLabel(product)}</p>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {comparisonPriceLabel(product)}
                   </TableCell>
                   <TableCell>
                     <div className="space-y-1 text-xs">
@@ -424,4 +426,25 @@ export default function ProductsPage() {
       </Dialog>
     </main>
   );
+}
+
+function packageUnitLabel(unit: string) {
+  if (unit === "pc") return "pc";
+  return unit;
+}
+
+function packageLabel(product: Product) {
+  if (!product.packageSize || !product.packageUnit) return null;
+  return `${product.packageSize} ${packageUnitLabel(product.packageUnit)}`;
+}
+
+function packagePriceLabel(product: Product) {
+  const productPackage = packageLabel(product);
+  return productPackage ? `${product.price} Tk / ${productPackage}` : `${product.price} Tk`;
+}
+
+function comparisonPriceLabel(product: Product) {
+  if (product.normalizedPricePerKg) return `${product.normalizedPricePerKg} Tk/kg`;
+  if (product.normalizedPricePerUnit) return `${product.normalizedPricePerUnit} Tk/pc`;
+  return "-";
 }

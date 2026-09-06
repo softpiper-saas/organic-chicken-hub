@@ -109,6 +109,119 @@ function normalizePackageUnit(value?: string) {
   return normalized;
 }
 
+function decodeHtmlEntities(value: string) {
+  const namedEntities: Record<string, string> = {
+    amp: "&",
+    quot: "\"",
+    apos: "'",
+    lt: "<",
+    gt: ">",
+    nbsp: " ",
+  };
+
+  return value.replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (match, entity: string) => {
+    const normalizedEntity = entity.toLowerCase();
+
+    if (normalizedEntity.startsWith("#x")) {
+      return String.fromCodePoint(Number.parseInt(normalizedEntity.slice(2), 16));
+    }
+
+    if (normalizedEntity.startsWith("#")) {
+      return String.fromCodePoint(Number.parseInt(normalizedEntity.slice(1), 10));
+    }
+
+    return namedEntities[normalizedEntity] ?? match;
+  });
+}
+
+function cleanText(value?: string | null) {
+  if (!value) return undefined;
+
+  const withoutHiddenContent = value
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ");
+  const withoutTags = withoutHiddenContent.replace(/<[^>]+>/g, " ");
+  const normalized = decodeHtmlEntities(withoutTags).replace(/\s+/g, " ").trim();
+
+  return normalized || undefined;
+}
+
+function escapedRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function extractMetaContent(html: string, name: string) {
+  const escapedName = escapedRegExp(name);
+  const propertyFirst = new RegExp(
+    `<meta[^>]+(?:property|name)=["']${escapedName}["'][^>]+content=["']([^"']+)["'][^>]*>`,
+    "i"
+  );
+  const contentFirst = new RegExp(
+    `<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']${escapedName}["'][^>]*>`,
+    "i"
+  );
+
+  return cleanText(html.match(propertyFirst)?.[1] ?? html.match(contentFirst)?.[1]);
+}
+
+function extractFirstHtmlMatch(html: string, pattern: RegExp) {
+  return cleanText(html.match(pattern)?.[1]);
+}
+
+function parsePriceValue(value?: string | null) {
+  if (!value) return null;
+
+  const parsed = Number(value.replace(/,/g, ""));
+  return Number.isFinite(parsed) ? Math.round(parsed) : null;
+}
+
+function extractPriceFromHtml(html: string) {
+  const metaPrice =
+    parsePriceValue(extractMetaContent(html, "product:price:amount")) ??
+    parsePriceValue(extractMetaContent(html, "og:price:amount"));
+
+  if (metaPrice) return metaPrice;
+
+  const visiblePrice =
+    html.match(/(?:৳|Tk\.?|BDT)\s*([0-9][0-9,]*(?:\.\d{1,2})?)/i)?.[1] ??
+    html.match(/([0-9][0-9,]*(?:\.\d{1,2})?)\s*(?:৳|Tk\.?|BDT)/i)?.[1];
+
+  const parsedVisiblePrice = parsePriceValue(visiblePrice);
+  if (parsedVisiblePrice) return parsedVisiblePrice;
+
+  return parsePriceValue(html.match(/"price"\s*:\s*"?([0-9][0-9,.]*)"?/i)?.[1]);
+}
+
+function extractPackageFromText(text: string) {
+  const match = text.match(/(\d+(?:\.\d+)?)\s*(kg|kilogram|kilograms|g|gm|gram|grams|pcs?|pieces?|eggs?)/i);
+  if (!match) return {};
+
+  return {
+    packageSize: Number(match[1]),
+    packageUnit: normalizePackageUnit(match[2]) ?? undefined,
+  };
+}
+
+function inferCategoryFromText(text: string, fallback?: string | null): FoodCategory {
+  const configuredCategory = fallback?.toLowerCase().replace(/[^a-z]+/g, "_").replace(/^_|_$/g, "");
+  if (knownCategories.includes(configuredCategory as FoodCategory)) {
+    return configuredCategory as FoodCategory;
+  }
+
+  const categorySignals: Array<[FoodCategory, RegExp]> = [
+    ["fish", /\b(fish|rui|ilish|hilsa|pabda|katla|tilapia|salmon|tuna|shrimp|prawn)\b|মাছ/iu],
+    ["nuts", /\b(nut|nuts|almond|cashew|pistachio|walnut|peanut)\b|বাদাম/iu],
+    ["seeds", /\b(seed|seeds|chia|flax|pumpkin|sunflower)\b/iu],
+    ["egg", /\b(egg|eggs)\b|ডিম/iu],
+    ["lentil", /\b(lentil|dal|daal)\b|ডাল/iu],
+    ["dairy", /\b(milk|yogurt|curd|paneer|cheese)\b|দুধ/iu],
+    ["beef", /\b(beef|meat)\b|গরু/iu],
+    ["chicken", /\b(chicken|broiler|sonali)\b|মুরগি/iu],
+  ];
+
+  return categorySignals.find(([, pattern]) => pattern.test(text))?.[0] ?? "chicken";
+}
+
 function productSearchText(
   product: ExtractedProduct,
   config: ScrapeTarget,
@@ -240,6 +353,62 @@ async function findOrCreateVendor(name: string, url: string, category: FoodCateg
   return inserted[0];
 }
 
+async function scrapeProductPageFallback(config: ScrapeTarget): Promise<ExtractedProduct | null> {
+  try {
+    const response = await fetch(config.url, {
+      headers: {
+        accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "accept-language": "en-US,en;q=0.9,bn;q=0.8",
+        "user-agent":
+          "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+      },
+    });
+
+    if (!response.ok) {
+      console.error(`HTML fallback failed for ${config.url}. Status code: ${response.status}`);
+      return null;
+    }
+
+    const html = await response.text();
+    const title = extractFirstHtmlMatch(html, /<title[^>]*>([\s\S]*?)<\/title>/i);
+    const heading = extractFirstHtmlMatch(html, /<h1[^>]*>([\s\S]*?)<\/h1>/i);
+    const metaTitle = extractMetaContent(html, "og:title");
+    const name = heading ?? metaTitle ?? title?.replace(/\s*[-|].*$/, "");
+    const price = extractPriceFromHtml(html);
+
+    if (!name || !price) {
+      console.error(`HTML fallback could not identify a product name and price for ${config.url}`);
+      return null;
+    }
+
+    const description =
+      extractMetaContent(html, "description") ??
+      extractMetaContent(html, "og:description") ??
+      extractFirstHtmlMatch(html, /<div[^>]+class=["'][^"']*(?:description|product__description)[^"']*["'][^>]*>([\s\S]*?)<\/div>/i);
+    const imageUrl =
+      extractMetaContent(html, "og:image") ??
+      extractMetaContent(html, "twitter:image");
+    const category = inferCategoryFromText(`${name} ${description ?? ""}`, config.category);
+    const packageInfo = extractPackageFromText(name);
+
+    return {
+      name,
+      description,
+      price,
+      vendor: config.vendorName || new URL(config.url).hostname,
+      url: config.url,
+      category,
+      packageSize: packageInfo.packageSize,
+      packageUnit: packageInfo.packageUnit,
+      imageUrl,
+      inStock: !/(sold\s*out|out\s+of\s+stock|stock\s+out)/i.test(cleanText(html) ?? ""),
+    };
+  } catch (error) {
+    console.error(`HTML fallback failed for ${config.url}:`, error);
+    return null;
+  }
+}
+
 function extractedProductsFromResult(extract: ProductScrapeResponse["extract"]) {
   if (!extract) return [];
   if ("products" in extract) return extract.products;
@@ -329,26 +498,39 @@ async function scrapeTargets(configs: ScrapeTarget[], updateConfigTimestamps: bo
     console.log(`Scraping URL: ${config.url}`);
     try {
       const isCollectionPage = config.sourceType === "collection_page";
-      const scrapeResult = await firecrawl.scrapeUrl(config.url, {
-        formats: ["extract"],
-        extract: {
-          prompt: isCollectionPage
-            ? `Extract product cards from this collection page. For each product, return name, brief description when available, price as an integer in Tk, vendor name, product URL, image URL, category, foodType, packageSize, packageUnit, stock status, and whether the product is explicitly labeled organic. Default category is ${config.category || "chicken"} and default vendor is ${config.vendorName || "the source website"}.`
-            : `Extract the product name, description, price as an integer in Tk, vendor name, product URL, image URL, category, foodType, packageSize, packageUnit, stock status, and whether the product is explicitly labeled organic from this product page. Default category is ${config.category || "chicken"} and default vendor is ${config.vendorName || "the source website"}.`,
-          schema: isCollectionPage ? productCollectionExtractSchema : productExtractSchema,
-        }
-      });
+      let scrapeResult: ProductScrapeResponse | null = null;
 
-      if (!scrapeResult.success) {
-        console.error(`Failed to scrape ${config.url}:`, scrapeResult.error);
-        continue;
+      try {
+        scrapeResult = await firecrawl.scrapeUrl(config.url, {
+          formats: ["extract"],
+          extract: {
+            prompt: isCollectionPage
+              ? `Extract product cards from this collection page. For each product, return name, brief description when available, price as an integer in Tk, vendor name, product URL, image URL, category, foodType, packageSize, packageUnit, stock status, and whether the product is explicitly labeled organic. Default category is ${config.category || "chicken"} and default vendor is ${config.vendorName || "the source website"}.`
+              : `Extract the product name, description, price as an integer in Tk, vendor name, product URL, image URL, category, foodType, packageSize, packageUnit, stock status, and whether the product is explicitly labeled organic from this product page. Default category is ${config.category || "chicken"} and default vendor is ${config.vendorName || "the source website"}.`,
+            schema: isCollectionPage ? productCollectionExtractSchema : productExtractSchema,
+          }
+        });
+      } catch (error) {
+        console.error(`Firecrawl failed for ${config.url}:`, error);
       }
 
-      const extractedProducts = extractedProductsFromResult(scrapeResult.extract);
+      let extractedProducts = scrapeResult?.success
+        ? extractedProductsFromResult(scrapeResult.extract)
+        : [];
+
+      if (extractedProducts.length === 0 && !isCollectionPage) {
+        const fallbackProduct = await scrapeProductPageFallback(config);
+        if (fallbackProduct) {
+          extractedProducts = [fallbackProduct];
+        }
+      }
 
       if (extractedProducts.length === 0) {
-         console.error(`No data extracted for ${config.url}`);
-         continue;
+        if (scrapeResult && !scrapeResult.success) {
+          console.error(`Failed to scrape ${config.url}:`, scrapeResult.error);
+        }
+        console.error(`No data extracted for ${config.url}`);
+        continue;
       }
 
       for (const data of extractedProducts) {

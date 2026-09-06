@@ -16,6 +16,17 @@ export async function POST(req: Request) {
       productId: body.productId,
     });
 
+    if (results.length === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "No products were scraped. Check the source URL, page type, or vendor access rules.",
+          data: [],
+        },
+        { status: 502 }
+      );
+    }
+
     return NextResponse.json({ success: true, data: results });
   } catch (error) {
     console.error("Scraping failed:", error);
