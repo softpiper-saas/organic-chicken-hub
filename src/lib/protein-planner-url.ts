@@ -29,7 +29,7 @@ const genderValues: readonly Gender[] = ["male", "female"];
 const activityValues: readonly ActivityLevel[] = ["sedentary", "light", "moderate", "active"];
 const goalValues: readonly ProteinGoal[] = ["basic_health", "fat_loss", "maintain", "muscle_gain"];
 const budgetPeriodValues: readonly BudgetPeriod[] = ["daily", "weekly", "monthly"];
-const plannerModeValues: readonly PlannerMode[] = ["cheapest", "balanced", "organic"];
+const plannerModeValues: readonly PlannerMode[] = ["cheapest", "balanced", "premium"];
 const foodCategoryValues: readonly FoodCategory[] = [
   "chicken",
   "egg",
@@ -53,6 +53,11 @@ function toBoundedNumber(value: string | null, fallback: number, min: number, ma
 
 function toOptionValue<T extends string>(value: string | null, options: readonly T[], fallback: T) {
   return value && options.includes(value as T) ? (value as T) : fallback;
+}
+
+function toPlannerMode(value: string | null) {
+  if (value === "organic") return "premium";
+  return toOptionValue(value, plannerModeValues, defaultPlannerInput.plannerMode);
 }
 
 function toBooleanValue(value: string | null, fallback: boolean) {
@@ -125,11 +130,7 @@ export function parsePlannerInputFromUrl(params: URLSearchParams): ProteinPlanne
       defaultPlannerInput.excludedFoodTypes
     ),
     organicOnly: toBooleanValue(params.get("organicOnly"), defaultPlannerInput.organicOnly),
-    plannerMode: toOptionValue(
-      params.get("plannerMode"),
-      plannerModeValues,
-      defaultPlannerInput.plannerMode
-    ),
+    plannerMode: toPlannerMode(params.get("plannerMode")),
     mealCount: toMealCount(params.get("mealCount"), defaultPlannerInput.mealCount),
   };
 }

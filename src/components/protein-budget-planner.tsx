@@ -283,9 +283,9 @@ export function ProteinBudgetPlanner({
               </div>
               <div className="flex flex-col gap-3 rounded-md border p-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="font-medium">Organic / premium preference</p>
+                  <p className="font-medium">Organic-only filter</p>
                   <p className="text-sm text-muted-foreground">
-                    Use verified organic scraped products when available.
+                    Only include products clearly marked as organic.
                   </p>
                 </div>
                 <Button

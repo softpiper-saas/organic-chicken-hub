@@ -37,9 +37,9 @@ const modeLabels: Record<PlannerMode, { label: string; description: string }> = 
     label: "Balanced",
     description: "Mixes affordable foods with more variety across categories.",
   },
-  organic: {
-    label: "Organic",
-    description: "Prefers verified organic products and premium sources.",
+  premium: {
+    label: "Premium",
+    description: "Prefers higher-priced products and premium sources.",
   },
 };
 
@@ -51,7 +51,7 @@ function shareCapForMode(category: FoodCategory, mode: PlannerMode) {
   const baseCap = proteinShareCaps[category] ?? 0.3;
 
   if (mode === "cheapest") return Math.min(baseCap + 0.2, 0.75);
-  if (mode === "organic") return Math.min(baseCap + 0.1, 0.6);
+  if (mode === "premium") return Math.min(baseCap + 0.1, 0.6);
 
   return baseCap;
 }
@@ -62,27 +62,28 @@ function scoreCandidate(
   mode: PlannerMode,
   selectedCategoryCounts = new Map<FoodCategory, number>()
 ) {
-  const costWeight = mode === "cheapest" ? 1.4 : mode === "organic" ? 0.8 : 1;
+  const costPerProtein = costPerGramProtein(candidate);
+  const costWeight = mode === "cheapest" ? 1.4 : mode === "premium" ? 0.25 : 1;
   const preferenceBonus = input.preferredCategories.includes(candidate.category)
     ? mode === "balanced"
       ? 1.8
       : 0.8
     : 0;
   const sourceBonus = candidate.source === "scraped_product" ? 0.4 : 0;
-  const organicBonus = candidate.isOrganic ? (mode === "organic" ? 3 : 0.25) : 0;
-  const estimatedPenalty = mode === "organic" && candidate.source === "estimated_market" ? 0.6 : 0;
+  const organicBonus = candidate.isOrganic ? (mode === "premium" ? 0.8 : 0.25) : 0;
+  const premiumPriceBonus = mode === "premium" ? Math.min(costPerProtein, 30) * 0.5 : 0;
   const requiredOrganicPenalty = input.organicOnly && !candidate.isOrganic ? 8 : 0;
   const repeatedCategoryPenalty =
     mode === "balanced" ? (selectedCategoryCounts.get(candidate.category) ?? 0) * 1.2 : 0;
 
   return (
-    costPerGramProtein(candidate) * costWeight -
+    costPerProtein * costWeight -
     preferenceBonus -
     sourceBonus -
     organicBonus +
-    estimatedPenalty +
     requiredOrganicPenalty +
-    repeatedCategoryPenalty
+    repeatedCategoryPenalty -
+    premiumPriceBonus
   );
 }
 
@@ -183,8 +184,8 @@ function buildWarnings(
     warnings.push("Food variety is limited by the selected budget or allowed categories.");
   }
 
-  if (mode === "organic" && items.length === 0) {
-    warnings.push("No matching organic products are currently available from scraped product data.");
+  if (mode === "premium" && items.length === 0) {
+    warnings.push("No matching premium products are currently available from scraped product data.");
   }
 
   if (targetProteinGrams > 120 && budgetPerDay < 250) {
@@ -201,7 +202,7 @@ function generateOption(
   targetProteinGrams: number,
   budgetPerDay: number
 ): ProteinPlanOption {
-  const optionInput = mode === "organic" ? { ...input, organicOnly: true } : input;
+  const optionInput = input;
   let candidates = buildProteinCandidates(products)
     .filter((candidate) => !optionInput.excludedCategories.includes(candidate.category))
     .filter((candidate) => !optionInput.excludedFoodTypes.includes(candidate.foodType));
@@ -301,7 +302,7 @@ export function generateProteinPlan(
     warnings.push("This planner is built for adults. For users under 18, use guidance from a guardian or qualified professional.");
   }
 
-  const planOptions = (["balanced", "cheapest", "organic"] as PlannerMode[]).map((mode) =>
+  const planOptions = (["balanced", "cheapest", "premium"] as PlannerMode[]).map((mode) =>
     generateOption(input, products, mode, targetProteinGrams, budgetPerDay)
   );
   const activeOption =

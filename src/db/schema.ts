@@ -45,7 +45,7 @@ export const products = pgTable("products", {
   normalizedPricePerKg: integer("normalized_price_per_kg"),
   normalizedPricePerUnit: integer("normalized_price_per_unit"),
   imageUrl: text("image_url"),
-  isOrganic: boolean("is_organic").default(true),
+  isOrganic: boolean("is_organic").default(false),
   inStock: boolean("in_stock").default(true),
   nutritionVerified: boolean("nutrition_verified").default(false),
   lastScrapedAt: timestamp("last_scraped_at").defaultNow(),

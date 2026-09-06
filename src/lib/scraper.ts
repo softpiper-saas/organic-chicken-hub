@@ -68,6 +68,26 @@ const knownCategories: FoodCategory[] = [
   "beef",
 ];
 
+const organicPositivePatterns = [
+  /\bcertified\s+organic\b/i,
+  /\borganic\b/i,
+  /\borganically\s+(raised|grown|fed|produced)\b/i,
+  /\bchemical[-\s]?free\b/i,
+  /অর্গানিক/u,
+  /জৈব/u,
+];
+
+const organicNegativePatterns = [
+  /\bbroiler\b/i,
+  /\bsafe\s+broiler\b/i,
+  /\bregular\b/i,
+  /\bconventional\b/i,
+  /\bfarm[-\s]?raised\b/i,
+  /\bsonali\b/i,
+  /ব্রয়লার/u,
+  /ব্রয়লার/u,
+];
+
 function normalizeCategorySlug(value?: string | null): FoodCategory {
   const normalized = value?.toLowerCase().replace(/[^a-z]+/g, "_").replace(/^_|_$/g, "");
   if (knownCategories.includes(normalized as FoodCategory)) {
@@ -87,6 +107,42 @@ function normalizePackageUnit(value?: string) {
   if (["serving", "servings"].includes(normalized)) return "serving";
 
   return normalized;
+}
+
+function productSearchText(
+  product: ExtractedProduct,
+  config: ScrapeTarget,
+  productUrl: string,
+  vendorName: string
+) {
+  return [
+    product.name,
+    product.description,
+    product.category,
+    product.foodType,
+    productUrl,
+    vendorName,
+    config.vendorName,
+    config.category,
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function inferOrganicStatus(
+  product: ExtractedProduct,
+  config: ScrapeTarget,
+  productUrl: string,
+  vendorName: string
+) {
+  const searchText = productSearchText(product, config, productUrl, vendorName);
+  const hasPositiveSignal = organicPositivePatterns.some((pattern) => pattern.test(searchText));
+  const hasNegativeSignal = organicNegativePatterns.some((pattern) => pattern.test(searchText));
+
+  if (hasPositiveSignal) return true;
+  if (hasNegativeSignal) return false;
+
+  return product.isOrganic === true;
 }
 
 function normalizePrices(product: ExtractedProduct, category: FoodCategory) {
@@ -198,6 +254,7 @@ async function upsertProduct(data: ExtractedProduct, config: ScrapeTarget) {
   const vendorRecord = await findOrCreateVendor(vendorName, productUrl, category);
   const profile = profileForCategory(category, data.name);
   const normalizedPrices = normalizePrices(data, category);
+  const isOrganic = inferOrganicStatus(data, config, productUrl, vendorName);
 
   const existing = await db.select().from(products).where(eq(products.url, productUrl));
 
@@ -219,7 +276,7 @@ async function upsertProduct(data: ExtractedProduct, config: ScrapeTarget) {
         normalizedPricePerKg: normalizedPrices.normalizedPricePerKg,
         normalizedPricePerUnit: normalizedPrices.normalizedPricePerUnit,
         imageUrl: data.imageUrl,
-        isOrganic: data.isOrganic,
+        isOrganic,
         inStock: data.inStock ?? true,
         nutritionVerified: Boolean(profile),
         lastScrapedAt: new Date()
@@ -233,7 +290,7 @@ async function upsertProduct(data: ExtractedProduct, config: ScrapeTarget) {
       });
     }
 
-    return { ...data, url: productUrl, category, foodType: data.foodType || profile?.foodType, status: "updated" };
+    return { ...data, url: productUrl, category, foodType: data.foodType || profile?.foodType, isOrganic, status: "updated" };
   }
 
   const inserted = await db.insert(products).values({
@@ -252,7 +309,7 @@ async function upsertProduct(data: ExtractedProduct, config: ScrapeTarget) {
     normalizedPricePerKg: normalizedPrices.normalizedPricePerKg,
     normalizedPricePerUnit: normalizedPrices.normalizedPricePerUnit,
     imageUrl: data.imageUrl,
-    isOrganic: data.isOrganic,
+    isOrganic,
     inStock: data.inStock ?? true,
     nutritionVerified: Boolean(profile),
   }).returning();
@@ -262,7 +319,7 @@ async function upsertProduct(data: ExtractedProduct, config: ScrapeTarget) {
     price: data.price,
   });
 
-  return { ...data, url: productUrl, category, foodType: data.foodType || profile?.foodType, status: "inserted" };
+  return { ...data, url: productUrl, category, foodType: data.foodType || profile?.foodType, isOrganic, status: "inserted" };
 }
 
 async function scrapeTargets(configs: ScrapeTarget[], updateConfigTimestamps: boolean) {
@@ -276,8 +333,8 @@ async function scrapeTargets(configs: ScrapeTarget[], updateConfigTimestamps: bo
         formats: ["extract"],
         extract: {
           prompt: isCollectionPage
-            ? `Extract product cards from this collection page. For each product, return name, brief description when available, price as an integer in Tk, vendor name, product URL, image URL, category, foodType, packageSize, packageUnit, stock status, and whether it appears organic. Default category is ${config.category || "chicken"} and default vendor is ${config.vendorName || "the source website"}.`
-            : `Extract the product name, description, price as an integer in Tk, vendor name, product URL, image URL, category, foodType, packageSize, packageUnit, stock status, and whether it appears organic from this product page. Default category is ${config.category || "chicken"} and default vendor is ${config.vendorName || "the source website"}.`,
+            ? `Extract product cards from this collection page. For each product, return name, brief description when available, price as an integer in Tk, vendor name, product URL, image URL, category, foodType, packageSize, packageUnit, stock status, and whether the product is explicitly labeled organic. Default category is ${config.category || "chicken"} and default vendor is ${config.vendorName || "the source website"}.`
+            : `Extract the product name, description, price as an integer in Tk, vendor name, product URL, image URL, category, foodType, packageSize, packageUnit, stock status, and whether the product is explicitly labeled organic from this product page. Default category is ${config.category || "chicken"} and default vendor is ${config.vendorName || "the source website"}.`,
           schema: isCollectionPage ? productCollectionExtractSchema : productExtractSchema,
         }
       });

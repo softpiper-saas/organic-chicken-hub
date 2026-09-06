@@ -10,7 +10,7 @@ export type ProteinGoal =
 
 export type BudgetPeriod = "daily" | "weekly" | "monthly";
 
-export type PlannerMode = "cheapest" | "balanced" | "organic";
+export type PlannerMode = "cheapest" | "balanced" | "premium";
 
 export type FoodCategory =
   | "chicken"
