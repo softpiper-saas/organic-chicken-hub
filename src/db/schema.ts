@@ -17,6 +17,17 @@ export const vendors = pgTable("vendors", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const scrapingConfigs = pgTable("scraping_configs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  url: text("url").notNull().unique(),
+  vendorName: text("vendor_name"),
+  category: text("category").default("chicken"),
+  sourceType: text("source_type").default("product_page"),
+  isActive: boolean("is_active").default(true),
+  lastScrapedAt: timestamp("last_scraped_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const products = pgTable("products", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
@@ -24,7 +35,8 @@ export const products = pgTable("products", {
   price: integer("price").notNull(), // Price in cents or smallest unit, or just raw integer
   vendor: text("vendor").notNull(),
   vendorId: uuid("vendor_id").references(() => vendors.id),
-  url: text("url").notNull(),
+  sourceConfigId: uuid("source_config_id").references(() => scrapingConfigs.id),
+  url: text("url").notNull().unique(),
   categoryId: uuid("category_id").references(() => productCategories.id),
   category: text("category").default("chicken"),
   foodType: text("food_type"),
@@ -52,16 +64,5 @@ export const reviews = pgTable("reviews", {
   vendor: text("vendor").notNull(),
   rating: integer("rating").notNull(),
   comment: text("comment"),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const scrapingConfigs = pgTable("scraping_configs", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  url: text("url").notNull().unique(),
-  vendorName: text("vendor_name"),
-  category: text("category").default("chicken"),
-  sourceType: text("source_type").default("product_page"),
-  isActive: boolean("is_active").default(true),
-  lastScrapedAt: timestamp("last_scraped_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });

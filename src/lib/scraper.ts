@@ -7,6 +7,7 @@ import {
   vendors,
 } from "@/db/schema";
 import { profileForCategory } from "@/lib/nutrition";
+import { normalizeProductUrl } from "@/lib/product-url";
 import { FoodCategory } from "@/types/protein-planner";
 import { eq } from "drizzle-orm";
 import FirecrawlApp from '@mendable/firecrawl-js';
@@ -190,7 +191,7 @@ function extractedProductsFromResult(extract: ProductScrapeResponse["extract"]) 
 }
 
 async function upsertProduct(data: ExtractedProduct, config: ScrapeTarget) {
-  const productUrl = data.url || config.url;
+  const productUrl = normalizeProductUrl(data.url || config.url, config.url);
   const category = normalizeCategorySlug(data.category || config.category);
   const categoryRecord = await findOrCreateCategory(category);
   const vendorName = data.vendor || config.vendorName || new URL(config.url).hostname;
@@ -209,6 +210,7 @@ async function upsertProduct(data: ExtractedProduct, config: ScrapeTarget) {
         price: data.price,
         vendor: vendorName,
         vendorId: vendorRecord.id,
+        sourceConfigId: config.id ?? existing[0].sourceConfigId,
         categoryId: categoryRecord.id,
         category,
         foodType: data.foodType || profile?.foodType,
@@ -240,6 +242,7 @@ async function upsertProduct(data: ExtractedProduct, config: ScrapeTarget) {
     price: data.price,
     vendor: vendorName,
     vendorId: vendorRecord.id,
+    sourceConfigId: config.id ?? null,
     categoryId: categoryRecord.id,
     category,
     foodType: data.foodType || profile?.foodType,

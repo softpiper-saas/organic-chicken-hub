@@ -21,6 +21,7 @@ export type Product = {
   description: string | null;
   price: number;
   vendor: string;
+  sourceConfigId: string | null;
   url: string;
   category: string | null;
   foodType: string | null;

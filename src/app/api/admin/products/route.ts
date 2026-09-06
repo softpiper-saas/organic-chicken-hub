@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { priceHistory, productCategories, products } from "@/db/schema";
 import { db } from "@/lib/db";
+import { normalizeProductUrl } from "@/lib/product-url";
 import { desc, eq } from "drizzle-orm";
 
 export async function GET() {
@@ -70,6 +71,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Name, vendor, URL, and price are required" }, { status: 400 });
     }
 
+    const normalizedUrl = normalizeProductUrl(url);
     const categoryId = await categoryIdForSlug(category);
     const inserted = await db
       .insert(products)
@@ -78,7 +80,7 @@ export async function POST(req: Request) {
         description,
         price: nullableNumber(price) ?? 0,
         vendor,
-        url,
+        url: normalizedUrl,
         category,
         categoryId,
         foodType,
@@ -136,6 +138,7 @@ export async function PATCH(req: Request) {
     }
 
     const nextPrice = nextNumber(price, existing[0].price) ?? existing[0].price;
+    const nextUrl = nextString(url, existing[0].url) ?? existing[0].url;
     const nextCategory = nextString(category, existing[0].category);
     const categoryId = await categoryIdForSlug(nextCategory);
     const updated = await db
@@ -145,7 +148,7 @@ export async function PATCH(req: Request) {
         description: nextString(description, existing[0].description),
         price: nextPrice,
         vendor: nextString(vendor, existing[0].vendor) ?? existing[0].vendor,
-        url: nextString(url, existing[0].url) ?? existing[0].url,
+        url: normalizeProductUrl(nextUrl),
         category: nextCategory,
         categoryId,
         foodType: nextString(foodType, existing[0].foodType),

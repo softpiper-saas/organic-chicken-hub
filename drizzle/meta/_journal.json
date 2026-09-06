@@ -15,6 +15,13 @@
       "when": 1788451200000,
       "tag": "0001_product_categories_vendors",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788675818243,
+      "tag": "0002_product-url-identity",
+      "breakpoints": true
     }
   ]
 }
