@@ -18,10 +18,9 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { ProteinPlanResult } from "@/components/protein-plan-result";
-import { categoryLabel, formatTk } from "@/lib/nutrition";
+import { categoryLabel, formatTk, inferCategoryFromProduct } from "@/lib/nutrition";
 import { generateProteinPlan } from "@/lib/protein-planner";
 import {
   ActivityLevel,
@@ -32,17 +31,6 @@ import {
   ProteinGoal,
   ProteinPlannerInput,
 } from "@/types/protein-planner";
-
-const foodCategories: FoodCategory[] = [
-  "chicken",
-  "egg",
-  "fish",
-  "lentil",
-  "nuts",
-  "seeds",
-  "dairy",
-  "beef",
-];
 
 const defaultInput: ProteinPlannerInput = {
   age: 30,
@@ -61,10 +49,154 @@ const defaultInput: ProteinPlannerInput = {
   mealCount: 3,
 };
 
+const genderValues: readonly Gender[] = ["male", "female"];
+const activityValues: readonly ActivityLevel[] = ["sedentary", "light", "moderate", "active"];
+const goalValues: readonly ProteinGoal[] = ["basic_health", "fat_loss", "maintain", "muscle_gain"];
+const budgetPeriodValues: readonly BudgetPeriod[] = ["daily", "weekly", "monthly"];
+const plannerModeValues = ["cheapest", "balanced", "organic"] as const;
+const foodCategoryValues: readonly FoodCategory[] = [
+  "chicken",
+  "egg",
+  "fish",
+  "lentil",
+  "nuts",
+  "seeds",
+  "dairy",
+  "beef",
+];
+const mealCountValues = [2, 3, 4] as const;
+
+function toBoundedNumber(value: string | null, fallback: number, min: number, max: number) {
+  if (value === null) return fallback;
+
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+
+  return Math.min(Math.max(parsed, min), max);
+}
+
+function toOptionValue<T extends string>(value: string | null, options: readonly T[], fallback: T) {
+  return value && options.includes(value as T) ? (value as T) : fallback;
+}
+
+function toBooleanValue(value: string | null, fallback: boolean) {
+  if (value === null) return fallback;
+  return value === "true" || value === "1";
+}
+
+function toOptionList<T extends string>(value: string | null, options: readonly T[], fallback: T[]) {
+  if (value === null) return fallback;
+  if (value.trim() === "") return [];
+
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item): item is T => options.includes(item as T));
+}
+
+function toStringList(value: string | null, fallback: string[]) {
+  if (value === null) return fallback;
+  if (value.trim() === "") return [];
+
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function toMealCount(value: string | null, fallback: ProteinPlannerInput["mealCount"]) {
+  const parsed = Number(value);
+  return mealCountValues.includes(parsed as ProteinPlannerInput["mealCount"])
+    ? (parsed as ProteinPlannerInput["mealCount"])
+    : fallback;
+}
+
+function parsePlannerInputFromUrl(params: URLSearchParams): ProteinPlannerInput {
+  return {
+    age: toBoundedNumber(params.get("age"), defaultInput.age, 18, 90),
+    gender: toOptionValue(params.get("gender"), genderValues, defaultInput.gender),
+    weightKg: toBoundedNumber(params.get("weightKg"), defaultInput.weightKg, 35, 180),
+    heightCm: toBoundedNumber(params.get("heightCm"), defaultInput.heightCm, 120, 230),
+    activityLevel: toOptionValue(
+      params.get("activityLevel"),
+      activityValues,
+      defaultInput.activityLevel
+    ),
+    goal: toOptionValue(params.get("goal"), goalValues, defaultInput.goal),
+    budgetAmount: toBoundedNumber(params.get("budgetAmount"), defaultInput.budgetAmount, 50, 100000),
+    budgetPeriod: toOptionValue(
+      params.get("budgetPeriod"),
+      budgetPeriodValues,
+      defaultInput.budgetPeriod
+    ),
+    preferredCategories: toOptionList(
+      params.get("preferredCategories"),
+      foodCategoryValues,
+      defaultInput.preferredCategories
+    ),
+    excludedCategories: toOptionList(
+      params.get("excludedCategories"),
+      foodCategoryValues,
+      defaultInput.excludedCategories
+    ),
+    excludedFoodTypes: toStringList(
+      params.get("excludedFoodTypes"),
+      defaultInput.excludedFoodTypes
+    ),
+    organicOnly: toBooleanValue(params.get("organicOnly"), defaultInput.organicOnly),
+    plannerMode: toOptionValue(params.get("plannerMode"), plannerModeValues, defaultInput.plannerMode),
+    mealCount: toMealCount(params.get("mealCount"), defaultInput.mealCount),
+  };
+}
+
+function serializePlannerInputToUrl(input: ProteinPlannerInput) {
+  const params = new URLSearchParams();
+
+  params.set("age", String(input.age));
+  params.set("gender", input.gender);
+  params.set("weightKg", String(input.weightKg));
+  params.set("heightCm", String(input.heightCm));
+  params.set("activityLevel", input.activityLevel);
+  params.set("goal", input.goal);
+  params.set("budgetAmount", String(input.budgetAmount));
+  params.set("budgetPeriod", input.budgetPeriod);
+  params.set("preferredCategories", input.preferredCategories.join(","));
+  params.set("excludedCategories", input.excludedCategories.join(","));
+  params.set("excludedFoodTypes", input.excludedFoodTypes.join(","));
+  params.set("organicOnly", String(input.organicOnly));
+  params.set("plannerMode", input.plannerMode);
+  params.set("mealCount", String(input.mealCount));
+
+  return params;
+}
+
+function equalStringLists(first: readonly string[], second: readonly string[]) {
+  return first.length === second.length && first.every((item, index) => item === second[index]);
+}
+
 export function ProteinBudgetPlanner() {
   const [input, setInput] = useState<ProteinPlannerInput>(defaultInput);
   const [products, setProducts] = useState<PlannerProduct[]>([]);
   const [productsLoaded, setProductsLoaded] = useState(false);
+  const [urlInputLoaded, setUrlInputLoaded] = useState(false);
+  const [urlProvidedPreferences, setUrlProvidedPreferences] = useState(false);
+
+  const availableFoodCategories = useMemo(() => {
+    const categories = products
+      .filter((product) => product.inStock !== false)
+      .map(inferCategoryFromProduct)
+      .filter((category): category is FoodCategory => Boolean(category));
+
+    return Array.from(new Set(categories));
+  }, [products]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+
+    setInput(parsePlannerInputFromUrl(params));
+    setUrlProvidedPreferences(params.has("preferredCategories"));
+    setUrlInputLoaded(true);
+  }, []);
 
   useEffect(() => {
     async function fetchProducts() {
@@ -82,6 +214,31 @@ export function ProteinBudgetPlanner() {
 
     fetchProducts();
   }, []);
+
+  useEffect(() => {
+    if (!urlInputLoaded) return;
+
+    const url = new URL(window.location.href);
+    const params = serializePlannerInputToUrl(input);
+    const nextSearch = params.toString();
+
+    if (url.search.slice(1) === nextSearch) return;
+
+    url.search = nextSearch;
+    window.history.replaceState(null, "", url);
+  }, [input, urlInputLoaded]);
+
+  useEffect(() => {
+    if (!urlInputLoaded || urlProvidedPreferences || !productsLoaded) return;
+
+    setInput((current) => {
+      if (equalStringLists(current.preferredCategories, availableFoodCategories)) {
+        return current;
+      }
+
+      return { ...current, preferredCategories: availableFoodCategories };
+    });
+  }, [availableFoodCategories, productsLoaded, urlInputLoaded, urlProvidedPreferences]);
 
   const result = useMemo(() => generateProteinPlan(input, products), [input, products]);
 
@@ -248,7 +405,7 @@ export function ProteinBudgetPlanner() {
             <section className="space-y-4">
               <SectionTitle title="Food preferences" />
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {foodCategories.map((category) => {
+                {availableFoodCategories.map((category) => {
                   const active = input.preferredCategories.includes(category);
                   return (
                     <Button
@@ -262,6 +419,11 @@ export function ProteinBudgetPlanner() {
                     </Button>
                   );
                 })}
+                {productsLoaded && availableFoodCategories.length === 0 && (
+                  <p className="col-span-full rounded-md border border-dashed p-3 text-sm text-muted-foreground">
+                    No in-stock scraped products are available yet.
+                  </p>
+                )}
               </div>
               <div className="flex flex-col gap-3 rounded-md border p-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
@@ -283,10 +445,10 @@ export function ProteinBudgetPlanner() {
         </Card>
 
         <div className="rounded-lg border bg-white p-4 text-sm text-muted-foreground">
-          Product prices are pulled from the current product API when possible. Missing categories use estimated local market prices until fish, nuts, eggs, dal, and dairy scraping are expanded.
+          Product prices are pulled only from active products currently saved in the database.
           {productsLoaded && products.length > 0 && (
             <span className="block pt-2 text-foreground">
-              Loaded {products.length} scraped product{products.length === 1 ? "" : "s"} for matching.
+              Loaded {products.length} active scraped product{products.length === 1 ? "" : "s"} across {availableFoodCategories.length} categor{availableFoodCategories.length === 1 ? "y" : "ies"}.
             </span>
           )}
         </div>
@@ -374,12 +536,14 @@ function SelectField({
   onValueChange: (value: string) => void;
   options: [string, string][];
 }) {
+  const selectedLabel = options.find(([optionValue]) => optionValue === value)?.[1];
+
   return (
     <div className="space-y-2">
       <Label>{label}</Label>
       <Select value={value} onValueChange={onValueChange}>
         <SelectTrigger>
-          <SelectValue />
+          <span className="truncate">{selectedLabel ?? value}</span>
         </SelectTrigger>
         <SelectContent>
           {options.map(([optionValue, optionLabel]) => (

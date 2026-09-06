@@ -183,8 +183,8 @@ function buildWarnings(
     warnings.push("Food variety is limited by the selected budget or allowed categories.");
   }
 
-  if (mode === "organic" && !items.some((item) => item.source === "scraped_product")) {
-    warnings.push("No verified organic scraped products were available for this option, so estimated market foods are used.");
+  if (mode === "organic" && items.length === 0) {
+    warnings.push("No matching organic products are currently available from scraped product data.");
   }
 
   if (targetProteinGrams > 120 && budgetPerDay < 250) {
@@ -206,8 +206,13 @@ function generateOption(
     .filter((candidate) => !optionInput.excludedCategories.includes(candidate.category))
     .filter((candidate) => !optionInput.excludedFoodTypes.includes(candidate.foodType));
 
+  candidates =
+    optionInput.preferredCategories.length > 0
+      ? candidates.filter((candidate) => optionInput.preferredCategories.includes(candidate.category))
+      : [];
+
   if (optionInput.organicOnly) {
-    candidates = candidates.filter((candidate) => candidate.isOrganic || candidate.source === "estimated_market");
+    candidates = candidates.filter((candidate) => candidate.isOrganic);
   }
 
   const quantities = new Map<string, number>();

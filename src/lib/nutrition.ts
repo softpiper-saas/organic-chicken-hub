@@ -211,9 +211,7 @@ export function buildProteinCandidates(products: PlannerProduct[]) {
     .map(candidateFromProduct)
     .filter((candidate): candidate is ProteinCandidate => Boolean(candidate));
 
-  const estimatedCandidates = nutritionProfiles.map(candidateFromProfile);
-
-  return [...productCandidates, ...estimatedCandidates].filter(
+  return productCandidates.filter(
     (candidate) => candidate.proteinPerBaseUnit > 0 && candidate.costPerBaseUnit > 0
   );
 }
