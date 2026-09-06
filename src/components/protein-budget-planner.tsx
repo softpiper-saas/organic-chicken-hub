@@ -21,6 +21,10 @@ import {
 } from "@/components/ui/select";
 import { ProteinPlanResult } from "@/components/protein-plan-result";
 import { categoryLabel, formatTk, inferCategoryFromProduct } from "@/lib/nutrition";
+import {
+  defaultPlannerInput,
+  serializePlannerInputToUrl,
+} from "@/lib/protein-planner-url";
 import { generateProteinPlan } from "@/lib/protein-planner";
 import {
   ActivityLevel,
@@ -32,154 +36,23 @@ import {
   ProteinPlannerInput,
 } from "@/types/protein-planner";
 
-const defaultInput: ProteinPlannerInput = {
-  age: 30,
-  gender: "male",
-  weightKg: 70,
-  heightCm: 170,
-  activityLevel: "light",
-  goal: "basic_health",
-  budgetAmount: 300,
-  budgetPeriod: "daily",
-  preferredCategories: ["chicken", "egg", "fish", "lentil"],
-  excludedCategories: [],
-  excludedFoodTypes: [],
-  organicOnly: false,
-  plannerMode: "balanced",
-  mealCount: 3,
-};
-
-const genderValues: readonly Gender[] = ["male", "female"];
-const activityValues: readonly ActivityLevel[] = ["sedentary", "light", "moderate", "active"];
-const goalValues: readonly ProteinGoal[] = ["basic_health", "fat_loss", "maintain", "muscle_gain"];
-const budgetPeriodValues: readonly BudgetPeriod[] = ["daily", "weekly", "monthly"];
-const plannerModeValues = ["cheapest", "balanced", "organic"] as const;
-const foodCategoryValues: readonly FoodCategory[] = [
-  "chicken",
-  "egg",
-  "fish",
-  "lentil",
-  "nuts",
-  "seeds",
-  "dairy",
-  "beef",
-];
-const mealCountValues = [2, 3, 4] as const;
-
-function toBoundedNumber(value: string | null, fallback: number, min: number, max: number) {
-  if (value === null) return fallback;
-
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) return fallback;
-
-  return Math.min(Math.max(parsed, min), max);
-}
-
-function toOptionValue<T extends string>(value: string | null, options: readonly T[], fallback: T) {
-  return value && options.includes(value as T) ? (value as T) : fallback;
-}
-
-function toBooleanValue(value: string | null, fallback: boolean) {
-  if (value === null) return fallback;
-  return value === "true" || value === "1";
-}
-
-function toOptionList<T extends string>(value: string | null, options: readonly T[], fallback: T[]) {
-  if (value === null) return fallback;
-  if (value.trim() === "") return [];
-
-  return value
-    .split(",")
-    .map((item) => item.trim())
-    .filter((item): item is T => options.includes(item as T));
-}
-
-function toStringList(value: string | null, fallback: string[]) {
-  if (value === null) return fallback;
-  if (value.trim() === "") return [];
-
-  return value
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
-function toMealCount(value: string | null, fallback: ProteinPlannerInput["mealCount"]) {
-  const parsed = Number(value);
-  return mealCountValues.includes(parsed as ProteinPlannerInput["mealCount"])
-    ? (parsed as ProteinPlannerInput["mealCount"])
-    : fallback;
-}
-
-function parsePlannerInputFromUrl(params: URLSearchParams): ProteinPlannerInput {
-  return {
-    age: toBoundedNumber(params.get("age"), defaultInput.age, 18, 90),
-    gender: toOptionValue(params.get("gender"), genderValues, defaultInput.gender),
-    weightKg: toBoundedNumber(params.get("weightKg"), defaultInput.weightKg, 35, 180),
-    heightCm: toBoundedNumber(params.get("heightCm"), defaultInput.heightCm, 120, 230),
-    activityLevel: toOptionValue(
-      params.get("activityLevel"),
-      activityValues,
-      defaultInput.activityLevel
-    ),
-    goal: toOptionValue(params.get("goal"), goalValues, defaultInput.goal),
-    budgetAmount: toBoundedNumber(params.get("budgetAmount"), defaultInput.budgetAmount, 50, 100000),
-    budgetPeriod: toOptionValue(
-      params.get("budgetPeriod"),
-      budgetPeriodValues,
-      defaultInput.budgetPeriod
-    ),
-    preferredCategories: toOptionList(
-      params.get("preferredCategories"),
-      foodCategoryValues,
-      defaultInput.preferredCategories
-    ),
-    excludedCategories: toOptionList(
-      params.get("excludedCategories"),
-      foodCategoryValues,
-      defaultInput.excludedCategories
-    ),
-    excludedFoodTypes: toStringList(
-      params.get("excludedFoodTypes"),
-      defaultInput.excludedFoodTypes
-    ),
-    organicOnly: toBooleanValue(params.get("organicOnly"), defaultInput.organicOnly),
-    plannerMode: toOptionValue(params.get("plannerMode"), plannerModeValues, defaultInput.plannerMode),
-    mealCount: toMealCount(params.get("mealCount"), defaultInput.mealCount),
-  };
-}
-
-function serializePlannerInputToUrl(input: ProteinPlannerInput) {
-  const params = new URLSearchParams();
-
-  params.set("age", String(input.age));
-  params.set("gender", input.gender);
-  params.set("weightKg", String(input.weightKg));
-  params.set("heightCm", String(input.heightCm));
-  params.set("activityLevel", input.activityLevel);
-  params.set("goal", input.goal);
-  params.set("budgetAmount", String(input.budgetAmount));
-  params.set("budgetPeriod", input.budgetPeriod);
-  params.set("preferredCategories", input.preferredCategories.join(","));
-  params.set("excludedCategories", input.excludedCategories.join(","));
-  params.set("excludedFoodTypes", input.excludedFoodTypes.join(","));
-  params.set("organicOnly", String(input.organicOnly));
-  params.set("plannerMode", input.plannerMode);
-  params.set("mealCount", String(input.mealCount));
-
-  return params;
-}
-
 function equalStringLists(first: readonly string[], second: readonly string[]) {
   return first.length === second.length && first.every((item, index) => item === second[index]);
 }
 
-export function ProteinBudgetPlanner() {
-  const [input, setInput] = useState<ProteinPlannerInput>(defaultInput);
+type ProteinBudgetPlannerProps = {
+  initialInput?: ProteinPlannerInput;
+  urlProvidedPreferences?: boolean;
+};
+
+export function ProteinBudgetPlanner({
+  initialInput = defaultPlannerInput,
+  urlProvidedPreferences = false,
+}: ProteinBudgetPlannerProps) {
+  const [input, setInput] = useState<ProteinPlannerInput>(initialInput);
   const [products, setProducts] = useState<PlannerProduct[]>([]);
   const [productsLoaded, setProductsLoaded] = useState(false);
-  const [urlInputLoaded, setUrlInputLoaded] = useState(false);
-  const [urlProvidedPreferences, setUrlProvidedPreferences] = useState(false);
+  const [urlSyncReady, setUrlSyncReady] = useState(false);
 
   const availableFoodCategories = useMemo(() => {
     const categories = products
@@ -189,14 +62,6 @@ export function ProteinBudgetPlanner() {
 
     return Array.from(new Set(categories));
   }, [products]);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-
-    setInput(parsePlannerInputFromUrl(params));
-    setUrlProvidedPreferences(params.has("preferredCategories"));
-    setUrlInputLoaded(true);
-  }, []);
 
   useEffect(() => {
     async function fetchProducts() {
@@ -216,7 +81,11 @@ export function ProteinBudgetPlanner() {
   }, []);
 
   useEffect(() => {
-    if (!urlInputLoaded) return;
+    setUrlSyncReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!urlSyncReady || (!urlProvidedPreferences && !productsLoaded)) return;
 
     const url = new URL(window.location.href);
     const params = serializePlannerInputToUrl(input);
@@ -226,10 +95,10 @@ export function ProteinBudgetPlanner() {
 
     url.search = nextSearch;
     window.history.replaceState(null, "", url);
-  }, [input, urlInputLoaded]);
+  }, [input, productsLoaded, urlProvidedPreferences, urlSyncReady]);
 
   useEffect(() => {
-    if (!urlInputLoaded || urlProvidedPreferences || !productsLoaded) return;
+    if (urlProvidedPreferences || !productsLoaded) return;
 
     setInput((current) => {
       if (equalStringLists(current.preferredCategories, availableFoodCategories)) {
@@ -238,7 +107,7 @@ export function ProteinBudgetPlanner() {
 
       return { ...current, preferredCategories: availableFoodCategories };
     });
-  }, [availableFoodCategories, productsLoaded, urlInputLoaded, urlProvidedPreferences]);
+  }, [availableFoodCategories, productsLoaded, urlProvidedPreferences]);
 
   const result = useMemo(() => generateProteinPlan(input, products), [input, products]);
 
