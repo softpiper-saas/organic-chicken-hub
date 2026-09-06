@@ -17,6 +17,9 @@ type Product = {
   name: string;
   vendor: string;
   price: number;
+  category: string | null;
+  normalizedPricePerKg: number | null;
+  inStock: boolean | null;
   isOrganic: boolean;
 };
 
@@ -30,18 +33,15 @@ export function CostCalculator() {
   useEffect(() => {
     async function fetchProducts() {
       try {
-        const res = await fetch("/api/products");
+        const res = await fetch("/api/products?category=chicken");
         if (res.ok) {
           const data = await res.json();
-          // Filter for organic products and maybe unique vendors? 
-          // For now, let's just list all organic options.
-          const organicProducts = data.filter((p: Product) => p.isOrganic);
+          const organicProducts = data.filter((product: Product) =>
+            product.category === "chicken" &&
+            product.isOrganic &&
+            product.inStock !== false
+          );
           setProducts(organicProducts);
-          
-          // Optional: Select the first one by default if available? 
-          // Let's keep default as custom/390 for now to match previous behavior, 
-          // or switch to the first provider if we want to be aggressive.
-          // Keeping 'custom' is safer.
         }
       } catch (error) {
         console.error("Failed to fetch products", error);
@@ -55,7 +55,7 @@ export function CostCalculator() {
     if (value !== "custom") {
       const product = products.find((p) => p.id === value);
       if (product) {
-        setOrganicPrice(product.price);
+        setOrganicPrice(product.normalizedPricePerKg ?? product.price);
       }
     }
   };
@@ -116,7 +116,7 @@ export function CostCalculator() {
                 <SelectItem value="custom">Custom Price</SelectItem>
                 {products.map((product) => (
                   <SelectItem key={product.id} value={product.id}>
-                    {product.vendor} - {product.name} ({product.price} Tk/kg)
+                    {product.vendor} - {product.name} ({providerPriceLabel(product)})
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -182,4 +182,9 @@ export function CostCalculator() {
       </CardContent>
     </Card>
   );
+}
+
+function providerPriceLabel(product: Product) {
+  const pricePerKg = product.normalizedPricePerKg ?? product.price;
+  return `${pricePerKg} Tk/kg`;
 }
